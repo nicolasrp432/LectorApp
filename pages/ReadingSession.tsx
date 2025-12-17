@@ -4,7 +4,13 @@ import { Book } from '../types';
 interface ReadingSessionProps {
   onBack: () => void;
   book: Book;
-  onComplete: (metrics: { levelOrSpeed: number; durationSeconds: number; wpmCalculated: number; comprehensionRate: number }) => void;
+  onComplete: (metrics: { 
+      levelOrSpeed: number; 
+      durationSeconds: number; 
+      wpmCalculated: number; 
+      comprehensionRate: number;
+      exerciseType: 'reading_session' | 'rsvp';
+  }) => void;
 }
 
 const DEFAULT_CONTENT = `Los Fundamentos de los Pequeños Cambios. ¿Por qué es tan fácil repetir malos hábitos y tan difícil formar buenos? Pocas cosas pueden tener un impacto más poderoso en tu vida que mejorar tus hábitos diarios. Mejorar un 1 por ciento no es particularmente notable, a veces ni siquiera es perceptible, pero puede ser mucho más significativo, especialmente a largo plazo. La diferencia que una pequeña mejora puede hacer con el tiempo es asombrosa.`;
@@ -76,7 +82,8 @@ const ReadingSession: React.FC<ReadingSessionProps> = ({ onBack, book, onComplet
           levelOrSpeed: speed,
           durationSeconds: duration,
           wpmCalculated: calculatedWPM,
-          comprehensionRate: 85 // Mock comprehension for MVP
+          comprehensionRate: 85, // Mock comprehension for MVP
+          exerciseType: readingMode === 'skimming' ? 'rsvp' : 'reading_session'
       });
       onBack();
   };
