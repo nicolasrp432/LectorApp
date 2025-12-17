@@ -1,13 +1,16 @@
 export interface Book {
   id: string;
+  userId?: string; 
   title: string;
   author: string;
   coverUrl: string;
   progress: number;
   totalPages?: number;
   totalTime?: string;
-  content?: string; // Contenido para el lector
-  isAnalyzed?: boolean; // Si la IA lo ha procesado
+  content?: string; 
+  isAnalyzed?: boolean; 
+  isPremium?: boolean; // Nuevo: Para tienda de XP
+  price?: number; // Costo en XP
 }
 
 export interface UserPreferences {
@@ -16,6 +19,7 @@ export interface UserPreferences {
   difficultyLevel: 'Básico' | 'Intermedio' | 'Avanzado';
   notificationsEnabled: boolean;
   soundEnabled: boolean;
+  themeColor?: string; // Nuevo: Personalización
 }
 
 export interface Achievement {
@@ -23,7 +27,17 @@ export interface Achievement {
   title: string;
   description: string;
   icon: string;
-  unlockedAt?: number; // Timestamp
+  unlockedAt?: number;
+}
+
+export interface Reward {
+  id: string;
+  type: 'avatar' | 'theme' | 'book';
+  title: string;
+  description: string;
+  cost: number;
+  value: string; // URL for avatar, hex for theme, ID for book
+  icon: string;
 }
 
 export interface User {
@@ -34,25 +48,19 @@ export interface User {
   stats: UserStats;
   joinedDate: number;
   baselineWPM: number;
-  level: string; // Ej: "Iniciado", "Lector Ágil", "Maestro Cognitivo"
+  level: string; 
   preferences: UserPreferences;
   achievements: Achievement[];
+  unlockedRewards: string[]; // IDs de recompensas desbloqueadas
 }
 
 export interface UserStats {
   streak: number;
-  tel: number; // Tasa de Eficiencia Lectora
+  tel: number; 
   lastActiveDate: number; 
   xp: number; 
-  // Estadísticas opcionales para UI
-  telChange?: number;
-  wpm?: number;
-  wpmChange?: number;
-  comprehension?: number;
-  comprehensionChange?: number;
-  recall?: number;
-  recallChange?: number;
-  retention?: number;
+  maxSchulteLevel?: number; 
+  maxWordSpan?: number; 
 }
 
 export interface Notification {
@@ -64,37 +72,36 @@ export interface Notification {
   isRead: boolean;
 }
 
-// DB Table: Metricas_Lectura
 export interface ReadingLog {
   id: string;
   userId: string;
-  exerciseType: 'schulte' | 'reading_session' | 'rsvp';
-  levelOrSpeed: number; // Tamaño rejilla o WPM
+  exerciseType: 'schulte' | 'reading_session' | 'rsvp' | 'word_span';
+  levelOrSpeed: number; 
   durationSeconds: number;
   wpmCalculated?: number;
-  comprehensionRate?: number; // 0-100
-  telCalculated?: number; // WPM * (Comprensión/100)
+  comprehensionRate?: number; 
+  telCalculated?: number; 
   timestamp: number;
 }
 
-// DB Table: Metricas_Retencion
 export interface RetentionLog {
   id: string;
   userId: string;
   flashcardId: string;
-  rating: number; // 0-5
+  rating: number; 
   intervalDays: number;
   timestamp: number;
 }
 
 export interface Flashcard {
   id: string;
-  bookId: string;
-  front: string; // Pregunta / Concepto
-  back: string;  // Respuesta / Definición
-  interval: number; // Días hasta el próximo repaso
+  userId?: string; 
+  bookId?: string;
+  front: string; 
+  back: string;  
+  interval: number; 
   repetition: number; 
-  efactor: number; // Factor de Facilidad (SM-2)
+  efactor: number; 
   dueDate: number; 
 }
 
@@ -115,14 +122,19 @@ export interface QuizQuestion {
 export enum AppRoute {
   WELCOME = 'welcome',
   LOGIN = 'login',
+  REGISTER = 'register',
   ASSESSMENT_INTRO = 'assessment_intro',
+  ASSESSMENT_READING = 'assessment_reading',
   ASSESSMENT_QUIZ = 'assessment_quiz',
+  ASSESSMENT_RESULTS = 'assessment_results',
   DASHBOARD = 'dashboard',
   LIBRARY = 'library',
   READING = 'reading',
   SCHULTE = 'schulte',
+  WORD_SPAN = 'word_span',
   MEMORY_TRAINING = 'memory_training',
   LOCI_TRAINING = 'loci_training',
   SETTINGS = 'settings',
   EDIT_PROFILE = 'edit_profile',
+  REWARDS = 'rewards', // Nueva ruta
 }

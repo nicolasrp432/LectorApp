@@ -17,7 +17,7 @@ const Header: React.FC<HeaderProps> = ({ user, notifications, onClearNotificatio
         <div className="relative">
           <div
             className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 ring-2 ring-primary/50"
-            style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAT03pNCv9ZwChpYTLj_5VuX3XrImTjDLs7TOS2X6ej8eDOrvoYQXAH7BsHlqfrK7v2Rf89sbKz6RJ_HfhjWfHpE_gwXUmZVw758dL_7obHIhZfQQVfuTkeXIz0WZ_OXsLfG-HFMYwpxSHH5P_W6N1Xy-3Fb8oAdkZ4AKEv2HMn61G551SDqc70th7lpXgmbj9L1B20mo5GYyu9r_XMYp8_mijX9vO3WH1eYsNqpfkLEH8nfjVR-syfCGfrpsdYtwxIumFWlKBomnC_")' }}
+            style={{ backgroundImage: `url("${user.avatarUrl}")` }}
           ></div>
           <div className="absolute bottom-0 right-0 size-3 bg-primary rounded-full border-2 border-background-dark"></div>
         </div>

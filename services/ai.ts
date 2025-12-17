@@ -1,16 +1,25 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Flashcard } from "../types";
 
-// NOTE: In a real production app, this should be handled by a backend proxy 
-// to keep the API KEY secure. For this demo/MVP, we use client-side logic 
-// assuming the environment variable is injected by the bundler/environment.
+// Acceso seguro a la variable de entorno
+const getApiKey = () => {
+    try {
+        // @ts-ignore
+        if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+            // @ts-ignore
+            return process.env.API_KEY;
+        }
+    } catch (e) {
+        console.warn("Could not access process.env");
+    }
+    return '';
+};
 
-const API_KEY = process.env.API_KEY || ''; // Fallback for dev if not set
+const API_KEY = getApiKey();
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 /**
- * Indexes text content and extracts key concepts into Flashcards.
- * This simulates a RAG-lite approach by asking the LLM to act as the extractor.
+ * Procesa el texto del libro usando Gemini para extraer conceptos clave.
  */
 export const generateFlashcardsFromText = async (bookId: string, textContext: string): Promise<Flashcard[]> => {
   if (!API_KEY) {
@@ -19,15 +28,22 @@ export const generateFlashcardsFromText = async (bookId: string, textContext: st
   }
 
   try {
-    // Limit context length for MVP to avoid token limits on basic models
-    const truncatedText = textContext.substring(0, 8000);
+    // Truncamos el texto si es inmensamente largo para respetar el límite de tokens inicial
+    // Gemini 2.5 Flash tiene una ventana de contexto grande, pero por seguridad en MVP:
+    const truncatedText = textContext.substring(0, 30000); 
 
     const prompt = `
-      Analyze the following text and extract 3 to 5 core concepts, facts, or insights that are critical for understanding the material.
-      Transform these concepts into Flashcards with a 'front' (Question or Trigger) and a 'back' (Answer or Explanation).
-      The questions should be contextualized and test deep understanding, not just surface recall.
+      Actúa como un experto en aprendizaje acelerado y comprensión lectora.
+      Analiza el siguiente texto y extrae 5 conceptos fundamentales, hechos clave o "insights".
       
-      Text to analyze:
+      Genera una lista de Flashcards. 
+      - 'front': Una pregunta desafiante o el término clave.
+      - 'back': La explicación concisa, la respuesta o el significado profundo.
+      
+      El objetivo es que el usuario memorice lo más importante de este texto.
+      Devuelve SOLO JSON válido.
+
+      Texto a analizar:
       "${truncatedText}..."
     `;
 
@@ -41,8 +57,8 @@ export const generateFlashcardsFromText = async (bookId: string, textContext: st
           items: {
             type: Type.OBJECT,
             properties: {
-              front: { type: Type.STRING, description: "The question or concept trigger" },
-              back: { type: Type.STRING, description: "The detailed answer or explanation" }
+              front: { type: Type.STRING, description: "La pregunta o concepto" },
+              back: { type: Type.STRING, description: "La respuesta o explicación detallada" }
             },
             required: ["front", "back"]
           }
@@ -50,7 +66,12 @@ export const generateFlashcardsFromText = async (bookId: string, textContext: st
       }
     });
 
-    const generatedData = JSON.parse(response.text || '[]');
+    let generatedData = [];
+    
+    // Parseo seguro de la respuesta JSON
+    if (response.text) {
+        generatedData = JSON.parse(response.text);
+    }
 
     return generatedData.map((item: any, index: number) => ({
       id: `${bookId}-card-${Date.now()}-${index}`,
@@ -65,38 +86,19 @@ export const generateFlashcardsFromText = async (bookId: string, textContext: st
 
   } catch (error) {
     console.error("AI Generation Error:", error);
+    // Fallback a datos mock si la API falla o no hay cuota
     return generateMockFlashcards(bookId);
   }
 };
 
-// Fallback for when API Key is missing or error occurs
+// Fallback por si falla la API
 const generateMockFlashcards = (bookId: string): Flashcard[] => {
   return [
     {
       id: `${bookId}-mock-1`,
       bookId,
-      front: "What is the 'Compound Effect' in habit formation?",
-      back: "Small, smart choices + consistency + time = radical difference. Habits multiply over time like compound interest.",
-      interval: 0,
-      repetition: 0,
-      efactor: 2.5,
-      dueDate: Date.now()
-    },
-    {
-      id: `${bookId}-mock-2`,
-      bookId,
-      front: "Why is the 'Plateau of Latent Potential' discouraging?",
-      back: "Because results often lag behind efforts. You expect linear progress, but results are exponential, creating a 'valley of disappointment' before the breakthrough.",
-      interval: 0,
-      repetition: 0,
-      efactor: 2.5,
-      dueDate: Date.now()
-    },
-     {
-      id: `${bookId}-mock-3`,
-      bookId,
-      front: "How does identity influence habits?",
-      back: "True behavior change is identity change. You might start a habit because of motivation, but you'll only stick with it if it becomes part of your identity.",
+      front: "¿Cuál es la idea principal de este texto?",
+      back: "La IA no pudo procesar el texto real, así que esta es una tarjeta de ejemplo. Verifica tu API Key.",
       interval: 0,
       repetition: 0,
       efactor: 2.5,

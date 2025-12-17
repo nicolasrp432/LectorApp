@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AppRoute, User, UserPreferences } from '../types';
 import { SettingsRow } from '../components/SettingsRow';
+import EditPreferenceModal from '../components/EditPreferenceModal';
 
 interface SettingsProps {
   onBack: () => void;
@@ -11,11 +12,38 @@ interface SettingsProps {
 }
 
 const Settings: React.FC<SettingsProps> = ({ onBack, user, onLogout, onNavigate, onUpdatePreferences }) => {
-  
+  const [modalConfig, setModalConfig] = useState<{
+      isOpen: boolean;
+      title: string;
+      type: 'number' | 'range' | 'select';
+      key: keyof UserPreferences;
+      options?: string[];
+      min?: number;
+      max?: number;
+      step?: number;
+  } | null>(null);
+
   const handleToggle = (key: keyof UserPreferences) => {
       onUpdatePreferences({
           [key]: !user.preferences[key]
       });
+  };
+
+  const openModal = (key: keyof UserPreferences) => {
+      let config: any = { isOpen: true, key };
+      
+      switch(key) {
+          case 'dailyGoalMinutes':
+              config = { ...config, title: 'Meta Diaria', type: 'number' };
+              break;
+          case 'targetWPM':
+              config = { ...config, title: 'Objetivo de Velocidad', type: 'range', min: 100, max: 1000, step: 25 };
+              break;
+          case 'difficultyLevel':
+              config = { ...config, title: 'Dificultad del Entrenamiento', type: 'select', options: ['Básico', 'Intermedio', 'Avanzado'] };
+              break;
+      }
+      setModalConfig(config);
   };
 
   return (
@@ -36,7 +64,7 @@ const Settings: React.FC<SettingsProps> = ({ onBack, user, onLogout, onNavigate,
         <div className="flex items-center gap-4 bg-surface-light dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
           <div 
             className="bg-center bg-no-repeat bg-cover rounded-full h-16 w-16 shrink-0 border-2 border-primary/20" 
-            style={{backgroundImage: `url("${user.avatarUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAT03pNCv9ZwChpYTLj_5VuX3XrImTjDLs7TOS2X6ej8eDOrvoYQXAH7BsHlqfrK7v2Rf89sbKz6RJ_HfhjWfHpE_gwXUmZVw758dL_7obHIhZfQQVfuTkeXIz0WZ_OXsLfG-HFMYwpxSHH5P_W6N1Xy-3Fb8oAdkZ4AKEv2HMn61G551SDqc70th7lpXgmbj9L1B20mo5GYyu9r_XMYp8_mijX9vO3WH1eYsNqpfkLEH8nfjVR-syfCGfrpsdYtwxIumFWlKBomnC_'}")`}}
+            style={{backgroundImage: `url("${user.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'}")`}}
           >
           </div>
           <div className="flex flex-col justify-center flex-1">
@@ -62,12 +90,14 @@ const Settings: React.FC<SettingsProps> = ({ onBack, user, onLogout, onNavigate,
             iconColorClass="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
             label="Meta Diaria"
             value={`${user.preferences.dailyGoalMinutes} mins`}
+            onClick={() => openModal('dailyGoalMinutes')}
           />
           <SettingsRow 
             icon="speed" 
             iconColorClass="bg-primary/20 text-primary"
             label="Objetivo de Velocidad"
             value={`${user.preferences.targetWPM} WPM`}
+            onClick={() => openModal('targetWPM')}
           />
           <SettingsRow 
             icon="signal_cellular_alt" 
@@ -75,6 +105,7 @@ const Settings: React.FC<SettingsProps> = ({ onBack, user, onLogout, onNavigate,
             label="Dificultad"
             value={user.preferences.difficultyLevel}
             hasBorder={false}
+            onClick={() => openModal('difficultyLevel')}
           />
         </div>
       </div>
@@ -129,8 +160,23 @@ const Settings: React.FC<SettingsProps> = ({ onBack, user, onLogout, onNavigate,
         >
             Cerrar Sesión
         </button>
-        <p className="text-center text-xs text-slate-400 dark:text-slate-600 mt-4">Versión 2.4.0 (Build 184)</p>
+        <p className="text-center text-xs text-slate-400 dark:text-slate-600 mt-4">Versión 2.5.0 (Build 190)</p>
       </div>
+
+      {/* Edit Modal */}
+      {modalConfig && (
+          <EditPreferenceModal 
+            title={modalConfig.title}
+            type={modalConfig.type}
+            initialValue={user.preferences[modalConfig.key]}
+            options={modalConfig.options}
+            min={modalConfig.min}
+            max={modalConfig.max}
+            step={modalConfig.step}
+            onClose={() => setModalConfig(null)}
+            onSave={(val) => onUpdatePreferences({ [modalConfig.key]: val })}
+          />
+      )}
 
     </div>
   );

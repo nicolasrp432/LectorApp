@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AppRoute } from '../types';
 
 interface WelcomeProps {
@@ -24,10 +24,11 @@ const Welcome: React.FC<WelcomeProps> = ({ onNavigate }) => {
           <div
             className="w-full h-full bg-center bg-no-repeat bg-contain relative z-10"
             style={{
-              backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuDBjCorMlblD8otxACDdlK2RK9eP06nVZ-wxQlfBj0xaGEG9qUe2JlwZfkm5O0fHBLrMlK-TQZa3WIgPTIOTLrdXzkKnFDOL3zw7sTeUeNHRN0OUc8sqaiMAdHG0_YfcAQJiX7Z4GZO-Ki3Gmqbj-qsaM8-kjh9xYHHIXIWQuVjWEYS_D0_-xxsF0Z0REG3o8EukSwIAnJ88PkAKGT0yUBiRCAofo4rIXKjqzLG45_ZE64kXUwvNIT69P9Tj4FumgnQl-JCmLYqkT-3")',
+              backgroundImage: 'url("https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=600&auto=format&fit=crop")',
               maskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)',
               WebkitMaskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)',
               opacity: 0.9,
+              borderRadius: '20px'
             }}
           ></div>
         </div>
@@ -46,9 +47,9 @@ const Welcome: React.FC<WelcomeProps> = ({ onNavigate }) => {
         {/* Social Proof */}
         <div className="flex items-center gap-3 mb-8 bg-white/5 dark:bg-white/5 rounded-full px-4 py-2 backdrop-blur-sm border border-black/5 dark:border-white/10">
           <div className="flex -space-x-2 overflow-hidden">
-            <img alt="User 1" className="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-[#112116] object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEoLjZFZXTLiQSo188ILO6Na4Cpn4-7LmpuCHvqo6goOMRjvX0VmWwXOMll3z4PqO9UYiyQ08VZ1thX0Rf62iYNRCMgVg0hcJc7t6EGtHU7K7g_IzQ93m6wl8QPIyj39Nz_myTN8nThhczZfVJkjKsI3WMXSLP4gPzaUW7VJKC_0P44EwmUE3cA8xWi7B1ydAv8EqGcePypsS4loLT2fD8F3VnJEAMyrtDd64AypLjnt7mytizALjqvIJ68wIOhqILuPizDFIpQXEm" />
-            <img alt="User 2" className="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-[#112116] object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwzsZ9KTJmKtsRa3isnHGovU9F564dHbuZKbrmclrwqJaAUybYCdiNxE2ebB12wMs7eT-zeIhTLw36UuhUfbETnHNDE9dVkpWHjqfe-pYpAPiM1HQ_0qoAHW8ZMF3J0UgsaIn5975ZzTVNPD3vSVDXo7-C40uvRg1HnqWueFTu0Pbhc-Gzs235iXcuywuN6QKm7_PDOGUBsdSU5fg5J9hu7Tdcwo34Zu8MBImmLFdzEjHF_mVjgznYTwx68iptkWmTC65PJpChGW9_" />
-            <img alt="User 3" className="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-[#112116] object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJYrxtUqOxhpgTd4Gjy756xue2zyXlU1IBlsnjskQNbgfRDWoDWnmkNXeRWnJU3V7RrXl1S_hhHs2hujyGT-RcMTrlq7JGsfPL9Uuua2OQqctqwaTB73IWee-hjU6bjziuC3f2VApkr0H_PnJjOC_zrUsimWpQGjDrs3FPdBEQ0FE_seqbEpMPAEUtXOwimDM4KwYSPqM1kaZDsTiETKlNEWlZisBAqR8Hiq4js2npZFjMwI4i6apL98UJgCMdzirxkgZDdKluu7As" />
+            <img alt="User 1" className="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-[#112116] object-cover" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" />
+            <img alt="User 2" className="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-[#112116] object-cover" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka" />
+            <img alt="User 3" className="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-[#112116] object-cover" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Zack" />
           </div>
           <span className="text-xs font-medium text-slate-600 dark:text-gray-400">Confiado por +10k estudiantes</span>
         </div>

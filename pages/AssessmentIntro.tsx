@@ -30,7 +30,7 @@ const AssessmentIntro: React.FC<AssessmentIntroProps> = ({ onNavigate, onBack })
           <div className="relative w-full aspect-[4/3] bg-surface-light dark:bg-surface-dark rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden flex items-center justify-center shadow-lg">
             <div
                 className="bg-center bg-no-repeat bg-cover w-full h-full opacity-80"
-                style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuDiaYNGGp_w9256A0yNjbuCaXPjIxPRdvoygcyfjzJ1MHejr8F12_cX7eF4m77yZEkaSSqZsHn4a3nvISIiZDjWVWsLB3aGxaWs1bOU89V-vH2RUiPGKXK4wrOKHhdavtw6w3cAwWfy2JhurA604--g4-8Y7lWNBdZF9SJWu-WjhN5kznXuHYZpXjsPxU9d69yty0nhfB2gebT_6oZddXZB4xyPoVOMe81VLS0GA47WDpioZC15oedgaixGzd8tpUv5mv09R77Gk-b5")' }}
+                style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1516574187841-69301905a304?q=80&w=600&auto=format&fit=crop")' }}
             ></div>
             <div className="absolute inset-0 bg-gradient-to-t from-background-light via-transparent to-transparent dark:from-background-dark"></div>
             {/* Floating Icon Overlay */}
@@ -83,7 +83,7 @@ const AssessmentIntro: React.FC<AssessmentIntroProps> = ({ onNavigate, onBack })
           </div>
         </div>
         <button
-            onClick={() => onNavigate(AppRoute.ASSESSMENT_QUIZ)}
+            onClick={() => onNavigate(AppRoute.ASSESSMENT_READING)}
             className="w-full bg-primary hover:bg-primary-dark active:scale-[0.98] transition-all text-background-dark font-bold text-lg h-14 rounded-xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(25,230,94,0.3)]"
         >
           Iniciar Test

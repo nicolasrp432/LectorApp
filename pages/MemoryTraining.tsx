@@ -19,16 +19,36 @@ const MemoryTraining: React.FC<MemoryTrainingProps> = ({ onNavigate, flashcards,
   const [isFlipped, setIsFlipped] = useState(false);
   const [sessionComplete, setSessionComplete] = useState(false);
 
-  // If no cards are due (or empty list)
+  // EMPTY STATE: No cards exist OR no cards due
+  if (flashcards.length === 0) {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center p-6 bg-background-light dark:bg-background-dark text-center animate-in fade-in">
+             <div className="size-24 bg-purple-500/10 rounded-full flex items-center justify-center mb-6">
+                <span className="material-symbols-outlined text-6xl text-purple-500">school</span>
+             </div>
+             <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Comienza tu Córtex</h2>
+             <p className="text-slate-500 dark:text-gray-400 mb-8 max-w-xs leading-relaxed">
+                Aún no tienes material para memorizar. <br/>
+                Importa un libro o texto en la librería y la IA generará tus primeras Flashcards automáticamente.
+             </p>
+             <button onClick={() => onNavigate(AppRoute.LIBRARY)} className="w-full max-w-xs px-8 py-4 bg-primary text-black font-bold rounded-xl shadow-lg hover:scale-105 transition-transform flex items-center justify-center gap-2">
+                <span className="material-symbols-outlined">upload_file</span>
+                Ir a Librería
+             </button>
+        </div>
+      );
+  }
+
+  // ALL CAUGHT UP STATE
   if (dueCards.length === 0 && !sessionComplete) {
     return (
         <div className="flex-1 flex flex-col items-center justify-center p-6 bg-background-light dark:bg-background-dark text-center">
-             <div className="size-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
-                <span className="material-symbols-outlined text-5xl text-primary">check_circle</span>
+             <div className="size-24 bg-green-500/10 rounded-full flex items-center justify-center mb-6 border border-green-500/30">
+                <span className="material-symbols-outlined text-6xl text-green-500">check_circle</span>
              </div>
              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">¡Todo al día!</h2>
              <p className="text-slate-500 dark:text-gray-400 mb-8 max-w-xs">
-                Has repasado todos tus conceptos clave por ahora. El algoritmo programará más para más tarde.
+                Has repasado todos los conceptos pendientes. El algoritmo espaciado programará más para mañana.
              </p>
              <button onClick={() => onNavigate(AppRoute.DASHBOARD)} className="px-8 py-3 bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl font-bold shadow-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-slate-900 dark:text-white">
                 Volver al Inicio
