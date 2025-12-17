@@ -1,6 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { AppRoute, Flashcard } from '../types';
 import { calculateSM2 } from '../utils/sm2';
+import { PRESET_FLASHCARD_SETS } from '../constants';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 interface MemoryTrainingProps {
   onNavigate: (route: AppRoute) => void;
@@ -9,66 +12,33 @@ interface MemoryTrainingProps {
 }
 
 const MemoryTraining: React.FC<MemoryTrainingProps> = ({ onNavigate, flashcards, onUpdateCard }) => {
-  // Filter due cards
-  const dueCards = useMemo(() => {
+  const { addFlashcards, user } = useAuth();
+  const { showToast } = useToast();
+  
+  const [mode, setMode] = useState<'menu' | 'review' | 'create'>('menu');
+  const [createFront, setCreateFront] = useState('');
+  const [createBack, setCreateBack] = useState('');
+
+  // FILTER LOGIC: Spaced Repetition (Prioritize overdue cards)
+  const sessionCards = useMemo(() => {
     const now = Date.now();
-    return flashcards.filter(card => card.dueDate <= now);
+    // Sort by due date (overdue first)
+    return [...flashcards]
+        .filter(card => card.dueDate <= now)
+        .sort((a, b) => a.dueDate - b.dueDate)
+        .slice(0, 15); // Limit session size for micro-learning
   }, [flashcards]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [sessionComplete, setSessionComplete] = useState(false);
 
-  // EMPTY STATE: No cards exist OR no cards due
-  if (flashcards.length === 0) {
-      return (
-        <div className="flex-1 flex flex-col items-center justify-center p-6 bg-background-light dark:bg-background-dark text-center animate-in fade-in">
-             <div className="size-24 bg-purple-500/10 rounded-full flex items-center justify-center mb-6">
-                <span className="material-symbols-outlined text-6xl text-purple-500">school</span>
-             </div>
-             <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Comienza tu Córtex</h2>
-             <p className="text-slate-500 dark:text-gray-400 mb-8 max-w-xs leading-relaxed">
-                Aún no tienes material para memorizar. <br/>
-                Importa un libro o texto en la librería y la IA generará tus primeras Flashcards automáticamente.
-             </p>
-             <button onClick={() => onNavigate(AppRoute.LIBRARY)} className="w-full max-w-xs px-8 py-4 bg-primary text-black font-bold rounded-xl shadow-lg hover:scale-105 transition-transform flex items-center justify-center gap-2">
-                <span className="material-symbols-outlined">upload_file</span>
-                Ir a Librería
-             </button>
-        </div>
-      );
-  }
-
-  // ALL CAUGHT UP STATE
-  if (dueCards.length === 0 && !sessionComplete) {
-    return (
-        <div className="flex-1 flex flex-col items-center justify-center p-6 bg-background-light dark:bg-background-dark text-center">
-             <div className="size-24 bg-green-500/10 rounded-full flex items-center justify-center mb-6 border border-green-500/30">
-                <span className="material-symbols-outlined text-6xl text-green-500">check_circle</span>
-             </div>
-             <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">¡Todo al día!</h2>
-             <p className="text-slate-500 dark:text-gray-400 mb-8 max-w-xs">
-                Has repasado todos los conceptos pendientes. El algoritmo espaciado programará más para mañana.
-             </p>
-             <button onClick={() => onNavigate(AppRoute.DASHBOARD)} className="px-8 py-3 bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl font-bold shadow-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-slate-900 dark:text-white">
-                Volver al Inicio
-             </button>
-        </div>
-    );
-  }
-
-  const currentCard = dueCards[currentIndex];
-
   const handleRating = (rating: number) => {
-    // 1. Calculate new state via SM-2
+    const currentCard = sessionCards[currentIndex];
     const updates = calculateSM2(currentCard, rating);
-    const updatedCard = { ...currentCard, ...updates };
+    onUpdateCard({ ...currentCard, ...updates });
 
-    // 2. Propagate update to App state
-    onUpdateCard(updatedCard);
-
-    // 3. Move to next
-    if (currentIndex < dueCards.length - 1) {
+    if (currentIndex < sessionCards.length - 1) {
         setIsFlipped(false);
         setCurrentIndex(prev => prev + 1);
     } else {
@@ -76,6 +46,152 @@ const MemoryTraining: React.FC<MemoryTrainingProps> = ({ onNavigate, flashcards,
     }
   };
 
+  const handleCreateCard = async () => {
+      if(!createFront.trim() || !createBack.trim()) return;
+      
+      const newCard: Flashcard = {
+          id: `custom-${Date.now()}`,
+          userId: user?.id,
+          front: createFront,
+          back: createBack,
+          interval: 0,
+          repetition: 0,
+          efactor: 2.5,
+          dueDate: Date.now()
+      };
+      
+      await addFlashcards([newCard]);
+      showToast('Tarjeta creada. ¡A repasar!', 'success');
+      setCreateFront('');
+      setCreateBack('');
+  };
+
+  const handleLoadPreset = async (presetId: string) => {
+      const preset = PRESET_FLASHCARD_SETS.find(p => p.id === presetId);
+      if(!preset) return;
+
+      const newCards = preset.cards.map((c, i) => ({
+          id: `${presetId}-${Date.now()}-${i}`,
+          userId: user?.id,
+          front: c.front!,
+          back: c.back!,
+          interval: 0,
+          repetition: 0,
+          efactor: 2.5,
+          dueDate: Date.now()
+      }));
+
+      await addFlashcards(newCards as Flashcard[]);
+      showToast(`Set "${preset.title}" añadido a tu mazo.`, 'success');
+  };
+
+  // --- VIEW: MENU ---
+  if (mode === 'menu') {
+      return (
+        <div className="flex-1 flex flex-col h-full bg-background-light dark:bg-background-dark font-display p-6 overflow-y-auto no-scrollbar">
+            <header className="flex items-center gap-4 mb-8">
+                <button onClick={() => onNavigate(AppRoute.DASHBOARD)} className="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10">
+                    <span className="material-symbols-outlined">arrow_back</span>
+                </button>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Supermemoria</h1>
+            </header>
+
+            <div className="space-y-6">
+                {/* SRS Review Action */}
+                <div className="bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 rounded-2xl p-6 relative overflow-hidden group cursor-pointer" onClick={() => setMode('review')}>
+                    <div className="absolute right-0 top-0 p-6 opacity-20 group-hover:scale-110 transition-transform">
+                        <span className="material-symbols-outlined text-8xl text-primary">style</span>
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-1">Repaso Diario</h2>
+                    <p className="text-sm text-slate-600 dark:text-gray-300 mb-4 max-w-[70%]">
+                        {sessionCards.length > 0 
+                            ? `Tienes ${sessionCards.length} tarjetas listas para reforzar.` 
+                            : "Estás al día. ¡Buen trabajo!"}
+                    </p>
+                    <button className="bg-primary text-black font-bold px-6 py-2 rounded-lg text-sm shadow-lg hover:bg-primary-dark transition-colors" disabled={sessionCards.length === 0}>
+                        {sessionCards.length > 0 ? 'Comenzar Sesión' : 'Repasar Todo'}
+                    </button>
+                </div>
+
+                {/* Create New */}
+                <div className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/5 rounded-2xl p-6 cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setMode('create')}>
+                    <div className="flex items-center gap-4">
+                        <div className="size-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
+                            <span className="material-symbols-outlined">add</span>
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-slate-900 dark:text-white">Crear Tarjeta</h3>
+                            <p className="text-xs text-gray-500">Añade tus propios conceptos.</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Presets */}
+                <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3 px-1">Sets Predefinidos</h3>
+                    <div className="space-y-3">
+                        {PRESET_FLASHCARD_SETS.map(preset => (
+                            <div key={preset.id} className="flex items-center justify-between bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/5 p-4 rounded-xl">
+                                <div>
+                                    <h4 className="font-bold text-sm text-slate-900 dark:text-white">{preset.title}</h4>
+                                    <p className="text-xs text-gray-500">{preset.cards.length} tarjetas</p>
+                                </div>
+                                <button onClick={() => handleLoadPreset(preset.id)} className="text-primary hover:bg-primary/10 p-2 rounded-lg transition-colors">
+                                    <span className="material-symbols-outlined">download</span>
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+      );
+  }
+
+  // --- VIEW: CREATE ---
+  if (mode === 'create') {
+      return (
+          <div className="flex-1 flex flex-col p-6 bg-background-light dark:bg-background-dark">
+              <header className="flex items-center gap-4 mb-6">
+                <button onClick={() => setMode('menu')} className="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10">
+                    <span className="material-symbols-outlined">arrow_back</span>
+                </button>
+                <h1 className="text-xl font-bold">Nueva Tarjeta</h1>
+            </header>
+            
+            <div className="space-y-4 flex-1">
+                <div>
+                    <label className="text-xs font-bold uppercase text-gray-500 mb-1 block">Pregunta (Frente)</label>
+                    <textarea 
+                        className="w-full h-32 bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl p-4 resize-none focus:ring-2 focus:ring-primary/50 outline-none"
+                        placeholder="Escribe el concepto a recordar..."
+                        value={createFront}
+                        onChange={(e) => setCreateFront(e.target.value)}
+                    />
+                </div>
+                <div>
+                    <label className="text-xs font-bold uppercase text-gray-500 mb-1 block">Respuesta (Dorso)</label>
+                    <textarea 
+                        className="w-full h-32 bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl p-4 resize-none focus:ring-2 focus:ring-primary/50 outline-none"
+                        placeholder="Escribe la explicación..."
+                        value={createBack}
+                        onChange={(e) => setCreateBack(e.target.value)}
+                    />
+                </div>
+            </div>
+
+            <button 
+                onClick={handleCreateCard}
+                disabled={!createFront || !createBack}
+                className="w-full py-4 bg-primary text-black font-bold rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                Guardar Tarjeta
+            </button>
+          </div>
+      )
+  }
+
+  // --- VIEW: REVIEW (SESSION COMPLETE) ---
   if (sessionComplete) {
       return (
         <div className="flex-1 flex flex-col items-center justify-center p-6 bg-background-light dark:bg-background-dark text-center animate-in zoom-in-95">
@@ -84,38 +200,46 @@ const MemoryTraining: React.FC<MemoryTrainingProps> = ({ onNavigate, flashcards,
              </div>
              <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Sesión Completada</h2>
              <p className="text-slate-500 dark:text-gray-400 mb-8">
-                Tus rutas neuronales han sido fortalecidas.
+                Has repasado {sessionCards.length} conceptos.
              </p>
-             <div className="flex gap-4 w-full max-w-xs">
-                <button onClick={() => onNavigate(AppRoute.DASHBOARD)} className="flex-1 px-6 py-4 bg-primary text-background-dark rounded-xl font-bold shadow-lg hover:scale-105 transition-transform">
-                    Finalizar
-                </button>
-             </div>
+             <button onClick={() => setMode('menu')} className="w-full max-w-xs px-6 py-4 bg-primary text-background-dark rounded-xl font-bold shadow-lg">
+                Volver al Menú
+             </button>
         </div>
       );
   }
 
+  // --- VIEW: REVIEW (ACTIVE) ---
+  const currentCard = sessionCards[currentIndex];
+  // If no cards are due but user clicked review (edge case handling)
+  if (!currentCard) {
+       return (
+           <div className="flex-1 flex flex-col items-center justify-center p-6">
+               <p className="text-gray-500 mb-4">No hay tarjetas pendientes.</p>
+               <button onClick={() => setMode('menu')} className="text-primary font-bold">Volver</button>
+           </div>
+       )
+  }
+
   return (
     <div className="flex flex-col h-full bg-background-light dark:bg-background-dark overflow-hidden relative">
-      {/* Header */}
+      {/* Review Header */}
       <header className="flex items-center justify-between px-4 py-4 z-10">
-        <button onClick={() => onNavigate(AppRoute.DASHBOARD)} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-colors">
+        <button onClick={() => setMode('menu')} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-gray-500 transition-colors">
             <span className="material-symbols-outlined">close</span>
         </button>
         <div className="flex flex-col items-center">
-            <span className="text-[10px] uppercase tracking-widest font-bold text-primary">Supermemoria</span>
-            <span className="text-xs text-gray-500">{currentIndex + 1} / {dueCards.length}</span>
+            <span className="text-[10px] uppercase tracking-widest font-bold text-primary">Repaso Espaciado</span>
+            <span className="text-xs text-gray-500">{currentIndex + 1} / {sessionCards.length}</span>
         </div>
-        <button className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-colors">
-            <span className="material-symbols-outlined">more_vert</span>
-        </button>
+        <div className="w-10"></div>
       </header>
 
       {/* Progress Bar */}
       <div className="w-full h-1 bg-gray-200 dark:bg-white/5">
         <div 
             className="h-full bg-primary transition-all duration-300" 
-            style={{ width: `${((currentIndex) / dueCards.length) * 100}%` }}
+            style={{ width: `${((currentIndex) / sessionCards.length) * 100}%` }}
         ></div>
       </div>
 
@@ -126,7 +250,7 @@ const MemoryTraining: React.FC<MemoryTrainingProps> = ({ onNavigate, flashcards,
             onClick={() => setIsFlipped(!isFlipped)}
             style={{ transformStyle: 'preserve-3d', transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}
          >
-            {/* Front (Question) */}
+            {/* Front */}
             <div 
                 className="absolute inset-0 backface-hidden bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-3xl shadow-2xl p-8 flex flex-col items-center justify-center text-center"
                 style={{ backfaceVisibility: 'hidden' }}
@@ -140,7 +264,7 @@ const MemoryTraining: React.FC<MemoryTrainingProps> = ({ onNavigate, flashcards,
                 <p className="mt-8 text-sm text-gray-400 font-medium uppercase tracking-widest">Toca para Voltear</p>
             </div>
 
-            {/* Back (Answer) */}
+            {/* Back */}
             <div 
                 className="absolute inset-0 backface-hidden bg-[#1f3025] border border-primary/20 rounded-3xl shadow-2xl p-8 flex flex-col items-center justify-center text-center rotate-y-180"
                 style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
@@ -167,11 +291,11 @@ const MemoryTraining: React.FC<MemoryTrainingProps> = ({ onNavigate, flashcards,
         ) : (
             <div className="grid grid-cols-4 gap-3">
                 <button onClick={() => handleRating(0)} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-colors">
-                    <span className="text-lg font-bold">Otra vez</span>
-                    <span className="text-[10px] uppercase font-bold opacity-70">&lt; 1m</span>
+                    <span className="text-lg font-bold">Fallé</span>
+                    <span className="text-[10px] uppercase font-bold opacity-70">1m</span>
                 </button>
                 <button onClick={() => handleRating(3)} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 text-orange-500 transition-colors">
-                    <span className="text-lg font-bold">Difícil</span>
+                    <span className="text-lg font-bold">Dudé</span>
                     <span className="text-[10px] uppercase font-bold opacity-70">2d</span>
                 </button>
                 <button onClick={() => handleRating(4)} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 transition-colors">

@@ -1,3 +1,4 @@
+
 import { supabase } from "../utils/supabase";
 import { User, ReadingLog, Book, Flashcard } from "../types";
 
@@ -12,7 +13,7 @@ export const dbService = {
             
         if (error || !data) return null;
 
-        // Merge defaults for stats that might not exist in old records
+        // Default stats merge
         const stats = {
             streak: 0,
             tel: 0,
@@ -30,7 +31,6 @@ export const dbService = {
             stats: stats,
             preferences: data.preferences,
             achievements: data.achievements || [],
-            unlockedRewards: data.unlocked_rewards || [],
             joinedDate: new Date(data.joined_at).getTime(),
             baselineWPM: 200, 
             level: 'Estudiante'
@@ -45,33 +45,25 @@ export const dbService = {
             avatar_url: user.avatarUrl,
             stats: user.stats,
             preferences: user.preferences,
-            achievements: user.achievements || [],
-            unlocked_rewards: user.unlockedRewards || []
+            achievements: user.achievements || []
         });
 
-        if (error) {
-            console.error("Error creating profile:", error.message, error.details || '');
-        }
+        if (error) console.error("Error creating profile:", error.message);
     },
 
     async updateUserPreferences(userId: string, prefs: any): Promise<void> {
-        // Fetch current to merge
         const { data } = await supabase.from('profiles').select('preferences').eq('id', userId).single();
         const currentPrefs = data?.preferences || {};
         const newPrefs = { ...currentPrefs, ...prefs };
-
-        const { error } = await supabase.from('profiles').update({ preferences: newPrefs }).eq('id', userId);
-        if (error) console.error("Error updating prefs:", error.message);
+        await supabase.from('profiles').update({ preferences: newPrefs }).eq('id', userId);
     },
     
     async updateUserStats(userId: string, stats: any): Promise<void> {
-        const { error } = await supabase.from('profiles').update({ stats: stats }).eq('id', userId);
-        if (error) console.error("Error updating stats:", error.message);
+        await supabase.from('profiles').update({ stats: stats }).eq('id', userId);
     },
 
-    // --- Logs ---
+    // --- Logs (Phase 3 Expanded) ---
     async addReadingLog(log: ReadingLog): Promise<void> {
-        // No enviamos ID (deja que la DB genere UUID) ni timestamp (DB usa default now())
         const { error } = await supabase.from('reading_logs').insert({
             user_id: log.userId,
             exercise_type: log.exerciseType,
@@ -80,7 +72,9 @@ export const dbService = {
                 durationSeconds: log.durationSeconds,
                 wpmCalculated: log.wpmCalculated,
                 telCalculated: log.telCalculated,
-                comprehensionRate: log.comprehensionRate
+                comprehensionRate: log.comprehensionRate,
+                fixationTimeAvg: log.fixationTimeAvg, // New
+                errors: log.errors // New
             }
         });
         
@@ -105,6 +99,8 @@ export const dbService = {
             wpmCalculated: row.score_data.wpmCalculated,
             telCalculated: row.score_data.telCalculated,
             comprehensionRate: row.score_data.comprehensionRate,
+            fixationTimeAvg: row.score_data.fixationTimeAvg,
+            errors: row.score_data.errors,
             timestamp: new Date(row.created_at).getTime()
         }));
     },
@@ -117,10 +113,7 @@ export const dbService = {
             .eq('user_id', userId)
             .order('created_at', { ascending: false });
 
-        if(error) {
-            console.error("Error fetching books:", error.message);
-            return [];
-        }
+        if(error) return [];
 
         return data.map((row: any) => ({
             id: row.id,
@@ -184,7 +177,7 @@ export const dbService = {
         
         const dbCards = cards.map(c => ({
             user_id: c.userId,
-            book_id: c.bookId?.length && c.bookId.length > 20 ? c.bookId : null, // Validación simple de UUID
+            book_id: c.bookId?.length && c.bookId.length > 20 ? c.bookId : null,
             front: c.front,
             back: c.back,
             interval: c.interval,

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AppRoute } from '../types';
 import { supabase } from '../utils/supabase';
+import { useAuth } from '../context/AuthContext';
 
 interface LoginProps {
   onLogin: () => void; // Used to trigger data refresh in App.tsx
@@ -8,6 +9,7 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
+  const { loginAsGuest } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -43,6 +45,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
     } finally {
         setIsLoading(false);
     }
+  };
+
+  const handleGuestLogin = () => {
+      loginAsGuest();
+      onLogin(); // Trigger app state refresh if needed
+      onNavigate(AppRoute.DASHBOARD);
   };
 
   const handleGoogleLogin = async () => {
@@ -86,6 +94,16 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                     {errorMsg}
                 </div>
             )}
+
+            {/* Guest Button */}
+            <button 
+                type="button"
+                onClick={handleGuestLogin}
+                className="w-full bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-600 dark:text-yellow-400 font-bold h-12 rounded-xl flex items-center justify-center gap-2 transition-all mb-4 text-sm uppercase tracking-wide"
+            >
+                <span className="material-symbols-outlined text-[18px]">person_off</span>
+                <span>Ingresar como Invitado</span>
+            </button>
 
             {/* Google Button */}
             <button 
