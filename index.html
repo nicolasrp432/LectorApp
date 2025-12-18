@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es" class="dark scroll-smooth">
   <head>
@@ -13,11 +14,11 @@
       href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
+    <!-- Material Symbols: Se usa display=block para evitar el destello de texto plano (FOIT) -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
       rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
     />
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script>
       tailwind.config = {
@@ -52,22 +53,31 @@
     <style>
       body {
         min-height: 100vh;
-        background-color: #112116; /* Fallback for dark mode */
+        background-color: #112116;
       }
-      /* Custom scrollbar hide */
-      .no-scrollbar::-webkit-scrollbar {
-        display: none;
-      }
-      .no-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       .glass-panel {
         background: rgba(17, 33, 22, 0.85);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
       }
+      /* Estilos críticos para asegurar que los iconos se rendericen como glifos y no como texto plano */
       .material-symbols-outlined {
+        font-family: 'Material Symbols Outlined';
+        font-weight: normal;
+        font-style: normal;
+        font-size: 24px;
+        line-height: 1;
+        letter-spacing: normal;
+        text-transform: none;
+        display: inline-block;
+        white-space: nowrap;
+        word-wrap: normal;
+        direction: ltr;
+        -webkit-font-feature-settings: 'liga';
+        -webkit-font-smoothing: antialiased;
+        /* Configuración de ejes variables para Material Symbols */
         font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
       }
     </style>
@@ -76,17 +86,24 @@
   "imports": {
     "react/": "https://esm.sh/react@^19.2.3/",
     "react": "https://esm.sh/react@^19.2.3",
-    "recharts": "https://esm.sh/recharts@^2.15.0",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.33.0",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.88.0",
-    "pdfjs-dist": "https://esm.sh/pdfjs-dist@3.11.174",
-    "pdfjs-dist/build/pdf.worker.min.js": "https://esm.sh/pdfjs-dist@3.11.174/build/pdf.worker.min.js"
+    "recharts": "https://esm.sh/recharts@^3.6.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
+    "express": "https://esm.sh/express@^5.2.1",
+    "path": "https://esm.sh/path@^0.12.7",
+    "fs": "https://esm.sh/fs@^0.0.1-security",
+    "url": "https://esm.sh/url@^0.11.4",
+    "vite": "https://esm.sh/vite@^7.3.0",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "pdfjs-dist": "https://esm.sh/pdfjs-dist@^5.4.449",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.88.0"
   }
 }
 </script>
 </head>
   <body class="bg-background-light dark:bg-background-dark font-display antialiased text-slate-900 dark:text-white transition-colors duration-200 selection:bg-primary selection:text-black">
     <div id="root"></div>
+    <!-- Se elimina el importmap ya que Vite maneja las dependencias mediante el empaquetado (bundling) estándar -->
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>
