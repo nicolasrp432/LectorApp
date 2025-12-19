@@ -193,10 +193,12 @@ export const ACHIEVEMENTS_LIST: Achievement[] = [
     { id: 'span_god', title: 'Memoria Infinita', description: 'Alcanza un Word Span de Nivel 10.', icon: 'pin' },
 ];
 
-export const PRESET_FLASHCARD_SETS: { id: string, title: string, cards: Partial<Flashcard>[] }[] = [
+export const PRESET_FLASHCARD_SETS: { id: string, title: string, icon: string, color: string, cards: Partial<Flashcard>[] }[] = [
     {
         id: 'set_capitals',
         title: 'Capitales de Europa',
+        icon: 'public',
+        color: 'bg-blue-500',
         cards: [
             { front: 'Capital de Francia', back: 'París' },
             { front: 'Capital de Alemania', back: 'Berlín' },
@@ -207,12 +209,32 @@ export const PRESET_FLASHCARD_SETS: { id: string, title: string, cards: Partial<
     },
     {
         id: 'set_neuroscience',
-        title: 'Conceptos de Neurociencia',
+        title: 'Neurociencia',
+        icon: 'psychology',
+        color: 'bg-purple-500',
         cards: [
             { front: 'Neuroplasticidad', back: 'Capacidad del cerebro para cambiar y adaptarse mediante la experiencia.' },
             { front: 'Sinapsis', back: 'Conexión entre dos neuronas que permite la transmisión de impulsos.' },
             { front: 'Hipocampo', back: 'Región del cerebro asociada con la memoria y la navegación espacial.' },
             { front: 'Dopamina', back: 'Neurotransmisor clave en el sistema de recompensa y motivación.' }
+        ]
+    },
+    {
+        id: 'set_periodic_table',
+        title: 'Tabla Periódica',
+        icon: 'science',
+        color: 'bg-emerald-500',
+        cards: [
+            { front: 'H', back: 'Hidrógeno (1)' },
+            { front: 'He', back: 'Helio (2)' },
+            { front: 'Li', back: 'Litio (3)' },
+            { front: 'Be', back: 'Berilio (4)' },
+            { front: 'B', back: 'Boro (5)' },
+            { front: 'C', back: 'Carbono (6)' },
+            { front: 'N', back: 'Nitrógeno (7)' },
+            { front: 'O', back: 'Oxígeno (8)' },
+            { front: 'F', back: 'Flúor (9)' },
+            { front: 'Ne', back: 'Neón (10)' }
         ]
     }
 ];
