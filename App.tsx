@@ -65,10 +65,11 @@ const MainLayout: React.FC = () => {
       );
   }
 
+  // Se asegura que ReadingSession (AppRoute.READING) mantenga el BottomNav visible
   const showBottomNav = user && [
       AppRoute.DASHBOARD, AppRoute.LIBRARY, AppRoute.SCHULTE, 
       AppRoute.WORD_SPAN, AppRoute.MEMORY_TRAINING, AppRoute.LOCI_TRAINING, 
-      AppRoute.REWARDS, AppRoute.SETTINGS, AppRoute.TRAININGS
+      AppRoute.REWARDS, AppRoute.SETTINGS, AppRoute.TRAININGS, AppRoute.READING
   ].includes(currentRoute);
 
   const renderContent = () => {

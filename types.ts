@@ -1,6 +1,6 @@
 
 export type ImageSize = '1K' | '2K' | '4K';
-export type ReadingMode = 'focal' | 'campo_visual' | 'expansion';
+export type ReadingMode = 'focal' | 'campo_visual' | 'expansion' | 'lectura_profunda';
 
 export interface Book {
   id: string;
@@ -82,7 +82,7 @@ export interface Notification {
 export interface ReadingLog {
   id: string;
   userId: string;
-  exerciseType: 'schulte' | 'reading_session' | 'focal' | 'campo_visual' | 'expansion' | 'word_span' | 'loci';
+  exerciseType: 'schulte' | 'reading_session' | 'focal' | 'campo_visual' | 'expansion' | 'word_span' | 'loci' | 'lectura_profunda';
   levelOrSpeed: number; 
   durationSeconds: number;
   wpmCalculated?: number;

@@ -96,22 +96,11 @@ const Library: React.FC<LibraryProps> = ({ onNavigate, onSelectBook }) => {
         
         {/* Tabs */}
         <div className="flex p-1 bg-gray-200 dark:bg-black/20 rounded-xl">
-            <button 
-                onClick={() => setActiveTab('books')}
-                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'books' ? 'bg-white dark:bg-surface-dark shadow-sm text-slate-900 dark:text-white' : 'text-gray-500'}`}
-            >
-                Mis Libros
-            </button>
-            <button 
-                onClick={() => setActiveTab('practice')}
-                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'practice' ? 'bg-white dark:bg-surface-dark shadow-sm text-slate-900 dark:text-white' : 'text-gray-500'}`}
-            >
-                Ejercicios
-            </button>
+            <button onClick={() => setActiveTab('books')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'books' ? 'bg-white dark:bg-surface-dark shadow-sm text-slate-900 dark:text-white' : 'text-gray-500'}`}>Mis Libros</button>
+            <button onClick={() => setActiveTab('practice')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'practice' ? 'bg-white dark:bg-surface-dark shadow-sm text-slate-900 dark:text-white' : 'text-gray-500'}`}>Ejercicios</button>
         </div>
       </div>
 
-      {/* Import Section (Only on Books tab) */}
       {activeTab === 'books' && (
           <div className="p-4 pt-2">
             <div className="bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 rounded-2xl p-6 flex flex-col gap-4 items-center text-center">
@@ -120,7 +109,7 @@ const Library: React.FC<LibraryProps> = ({ onNavigate, onSelectBook }) => {
                 </div>
                 <div>
                     <h3 className="font-bold text-slate-900 dark:text-white text-lg">Importar o Escanear</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Soporta PDF, TXT y Fotos (Vision)</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Soporta PDF, TXT y Fotos</p>
                 </div>
                 <input type="file" accept=".txt,.pdf,.jpg,.jpeg,.png" ref={fileInputRef} className="hidden" onChange={handleFileChange}/>
                 <Button onClick={() => fileInputRef.current?.click()} leftIcon="add_a_photo">Subir Archivo</Button>
@@ -128,19 +117,16 @@ const Library: React.FC<LibraryProps> = ({ onNavigate, onSelectBook }) => {
           </div>
       )}
 
-      {/* List */}
       <div className="px-4 space-y-3 mt-2">
         <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">
             {activeTab === 'books' ? 'Tu Colección' : 'Entrenamientos Guiados'}
         </h3>
         
         {displayedContent.map((item) => (
-          <div key={item.id} onClick={() => onSelectBook(item.id)} className="flex gap-4 p-3 rounded-xl bg-white dark:bg-surface-dark border border-gray-100 dark:border-white/5 shadow-sm hover:border-primary/50 transition-all cursor-pointer active:scale-[0.99]">
+          <div key={item.id} onClick={() => onSelectBook(item.id)} className="flex gap-4 p-4 rounded-xl bg-white dark:bg-surface-dark border border-gray-100 dark:border-white/5 shadow-sm hover:border-primary/50 transition-all cursor-pointer active:scale-[0.99] h-32 items-center">
             <div className="w-16 h-24 bg-cover bg-center rounded-lg shadow-sm shrink-0 relative overflow-hidden" style={{ backgroundImage: `url("${item.coverUrl}")` }}>
                 {item.category === 'practice' && (
-                    <div className="absolute bottom-0 w-full bg-black/60 text-white text-[9px] font-bold text-center py-1 uppercase">
-                        {item.difficulty}
-                    </div>
+                    <div className="absolute bottom-0 w-full bg-black/60 text-white text-[9px] font-bold text-center py-1 uppercase">{item.difficulty}</div>
                 )}
             </div>
             <div className="flex flex-col justify-center flex-1 min-w-0">
@@ -165,9 +151,7 @@ const Library: React.FC<LibraryProps> = ({ onNavigate, onSelectBook }) => {
         ))}
 
         {displayedContent.length === 0 && (
-            <div className="text-center py-10 opacity-50">
-                <p>No hay elementos disponibles.</p>
-            </div>
+            <div className="text-center py-10 opacity-50"><p>No hay elementos disponibles.</p></div>
         )}
       </div>
     </div>
