@@ -1,5 +1,7 @@
 {
   "name": "Lector",
   "description": "A scientifically designed speed-reading and supermemory training application featuring adaptive reading tools, assessments, and progress tracking.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "camera"
+  ]
 }

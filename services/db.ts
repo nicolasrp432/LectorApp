@@ -1,6 +1,8 @@
 
 import { supabase } from "../utils/supabase";
-import { User, ReadingLog, Book, Flashcard } from "../types";
+import { User, ReadingLog, Book, Flashcard, MemoryPalace } from "../types";
+
+const LOCAL_PALACES_KEY = 'lector_local_palaces';
 
 export const dbService = {
     // --- Auth & User ---
@@ -13,7 +15,6 @@ export const dbService = {
             
         if (error || !data) return null;
 
-        // Default stats merge
         const stats = {
             streak: 0,
             tel: 0,
@@ -62,7 +63,66 @@ export const dbService = {
         await supabase.from('profiles').update({ stats: stats }).eq('id', userId);
     },
 
-    // --- Logs (Phase 3 Expanded) ---
+    // --- Memory Palaces ---
+    async addMemoryPalace(palace: MemoryPalace): Promise<void> {
+        // SQL Recommendation for user: 
+        // CREATE TABLE memory_palaces (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), user_id UUID REFERENCES profiles(id), name TEXT, method TEXT, description TEXT, items JSONB, created_at TIMESTAMPTZ DEFAULT NOW());
+        
+        try {
+            const { error } = await supabase.from('memory_palaces').insert({
+                user_id: palace.userId,
+                name: palace.name,
+                method: palace.method,
+                description: palace.description,
+                items: palace.items,
+                created_at: new Date(palace.timestamp).toISOString()
+            });
+            
+            if (error) throw error;
+        } catch (error: any) {
+            console.warn("Database table 'memory_palaces' not found or inaccessible. Falling back to LocalStorage.", error.message);
+            // Fallback strategy: Persist locally so user data isn't lost
+            const localPalaces = JSON.parse(localStorage.getItem(LOCAL_PALACES_KEY) || '[]');
+            localPalaces.push(palace);
+            localStorage.setItem(LOCAL_PALACES_KEY, JSON.stringify(localPalaces));
+        }
+    },
+
+    async getMemoryPalaces(userId: string): Promise<MemoryPalace[]> {
+        let dbPalaces: MemoryPalace[] = [];
+        
+        try {
+            const { data, error } = await supabase
+                .from('memory_palaces')
+                .select('*')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false });
+
+            if (!error && data) {
+                dbPalaces = data.map((row: any) => ({
+                    id: row.id,
+                    userId: row.user_id,
+                    name: row.name,
+                    method: row.method,
+                    description: row.description,
+                    items: row.items,
+                    timestamp: new Date(row.created_at).getTime()
+                }));
+            }
+        } catch (e) {
+            console.warn("Could not fetch memory_palaces from DB.");
+        }
+
+        // Merge with local storage items
+        const localPalaces: MemoryPalace[] = JSON.parse(localStorage.getItem(LOCAL_PALACES_KEY) || '[]')
+            .filter((p: MemoryPalace) => p.userId === userId);
+
+        // Deduplicate and return (prefer DB items if ID matches, though local IDs are generated differently)
+        const combined = [...dbPalaces, ...localPalaces].sort((a, b) => b.timestamp - a.timestamp);
+        return combined;
+    },
+
+    // --- Logs ---
     async addReadingLog(log: ReadingLog): Promise<void> {
         const { error } = await supabase.from('reading_logs').insert({
             user_id: log.userId,
@@ -73,11 +133,10 @@ export const dbService = {
                 wpmCalculated: log.wpmCalculated,
                 telCalculated: log.telCalculated,
                 comprehensionRate: log.comprehensionRate,
-                fixationTimeAvg: log.fixationTimeAvg, // New
-                errors: log.errors // New
+                fixationTimeAvg: log.fixationTimeAvg,
+                errors: log.errors
             }
         });
-        
         if (error) console.error("Error logging reading:", error.message);
     },
 

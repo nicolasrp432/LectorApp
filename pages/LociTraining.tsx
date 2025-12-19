@@ -1,365 +1,445 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { generateBizarreStory, generateMemoryImage } from '../services/ai';
+import { Button } from '../components/ui/Button';
+import { MemoryPalace, ImageSize } from '../types';
+import { dbService } from '../services/db';
+import { useToast } from '../context/ToastContext';
 
-interface LociTrainingProps {
-  onBack: () => void;
-  onComplete?: (score: number) => void;
-}
-
-// Data for interactive rooms
-const ROOMS = [
-    { id: 'bedroom', name: 'Dormitorio', icon: 'bed', color: 'from-blue-500/20 to-indigo-500/20', text: 'text-blue-400', border: 'border-blue-500/30' },
-    { id: 'kitchen', name: 'Cocina', icon: 'kitchen', color: 'from-green-500/20 to-emerald-500/20', text: 'text-green-400', border: 'border-green-500/30' },
-    { id: 'living', name: 'Sala', icon: 'chair', color: 'from-orange-500/20 to-red-500/20', text: 'text-orange-400', border: 'border-orange-500/30' }
+// --- DATA ---
+const SYSTEMS = [
+    { id: 'loci', name: 'Lugares', icon: 'castle', desc: 'Asocia datos a espacios físicos.', color: 'from-blue-600 to-indigo-700' },
+    { id: 'body', name: 'Cuerpo', icon: 'accessibility_new', desc: 'Usa partes de tu cuerpo como estaciones.', color: 'from-pink-600 to-rose-700' },
+    { id: 'color', name: 'Colores', icon: 'palette', desc: 'Vincula ideas a un espectro cromático.', color: 'from-orange-500 to-amber-600' }
 ];
 
-// Concepts to memorize
-const CONCEPTS_TO_MEMORIZE = [
-    "La Neuroplasticidad",
-    "Curva del Olvido",
-    "Lectura Vertical",
-    "Fijación Ocular",
-    "Sinapsis"
+const PRESET_PLACES = [
+    { id: 'home', name: 'Mi Casa', stations: ['Puerta', 'Recibidor', 'Sofá', 'Mesa Comedor', 'Nevera', 'Cocina', 'Baño', 'Cama', 'Ventana', 'Pasillo'] },
+    { id: 'office', name: 'Oficina', stations: ['Ascensor', 'Escritorio', 'Cafetera', 'Sala Juntas', 'Ventana', 'Entrada', 'Pizarra', 'Silla', 'Archivo', 'Baño'] },
+    { id: 'custom', name: 'Lugar Imaginario', stations: ['Portal', 'Estatua', 'Cascada', 'Cueva', 'Cima', 'Bosque', 'Lago', 'Puente', 'Torre', 'Prado'] }
 ];
 
-const LociTraining: React.FC<LociTrainingProps> = ({ onBack, onComplete }) => {
-  const { logReading } = useAuth();
-  const [phase, setPhase] = useState<'select' | 'build' | 'test' | 'result'>('select');
-  const [selectedRoom, setSelectedRoom] = useState<typeof ROOMS[0] | null>(null);
-  const [stations, setStations] = useState<{id: number, x: number, y: number, concept: string}[]>([]);
-  const [nextStationId, setNextStationId] = useState(1);
-  const [recallAnswers, setRecallAnswers] = useState<{[key: number]: string}>({});
+const BODY_STATIONS = ['Cabeza', 'Hombros', 'Pecho', 'Manos', 'Estómago', 'Piernas', 'Pies', 'Espalda', 'Cuello', 'Orejas'];
+const COLOR_STATIONS = ['Rojo Neón', 'Azul Eléctrico', 'Verde Ácido', 'Amarillo Solar', 'Púrpura Profundo', 'Naranja Fuego', 'Rosa Chicle', 'Blanco Puro', 'Negro Mate', 'Cian'];
+
+type Phase = 'library' | 'system' | 'qty' | 'setup' | 'input' | 'association' | 'test' | 'result' | 'view_saved';
+
+const LociTraining: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+  const { user, logReading } = useAuth();
+  const { showToast } = useToast();
+  
+  const [phase, setPhase] = useState<Phase>('system');
+  const [method, setMethod] = useState<typeof SYSTEMS[0] | null>(null);
+  const [dataCount, setDataCount] = useState<number>(5);
+  const [placeDesc, setPlaceDesc] = useState<string>('');
+  const [stations, setStations] = useState<string[]>([]);
+  const [userInputs, setUserInputs] = useState<string[]>([]);
+  const [currentStationIdx, setCurrentStationIdx] = useState(0);
+  const [memoryItems, setMemoryItems] = useState<MemoryPalace['items']>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [recallAnswers, setRecallAnswers] = useState<string[]>([]);
   const [score, setScore] = useState(0);
   const [startTime, setStartTime] = useState(0);
+  const [savedPalaces, setSavedPalaces] = useState<MemoryPalace[]>([]);
+  const [selectedPalace, setSelectedPalace] = useState<MemoryPalace | null>(null);
+  const [imageSize, setImageSize] = useState<ImageSize>('1K');
 
-  const handleRoomSelect = (room: typeof ROOMS[0]) => {
-      setSelectedRoom(room);
-      setPhase('build');
-      setStartTime(Date.now());
+  // Load saved palaces
+  useEffect(() => {
+    if (user) {
+        dbService.getMemoryPalaces(user.id).then(setSavedPalaces);
+    }
+  }, [user]);
+
+  // --- Handlers ---
+  const handleSystemSelect = (sys: typeof SYSTEMS[0]) => {
+      setMethod(sys);
+      setPhase('qty');
   };
 
-  const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
-      if (stations.length >= 5) return;
+  const handleQtySelect = (qty: number) => {
+      setDataCount(qty);
+      setUserInputs(new Array(qty).fill(''));
+      setRecallAnswers(new Array(qty).fill(''));
       
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width) * 100;
-      const y = ((e.clientY - rect.top) / rect.height) * 100;
-      
-      const concept = CONCEPTS_TO_MEMORIZE[nextStationId - 1];
-      
-      setStations([...stations, { 
-          id: nextStationId, 
-          x, 
-          y,
-          concept
-      }]);
-      setNextStationId(prev => prev + 1);
+      if (method?.id === 'loci') {
+          setPhase('setup');
+      } else {
+          const baseStations = method?.id === 'body' ? BODY_STATIONS : COLOR_STATIONS;
+          setStations(baseStations.slice(0, qty));
+          setPhase('input');
+      }
+  };
+
+  const handlePlaceSelect = (placeId: string) => {
+      const place = PRESET_PLACES.find(p => p.id === placeId);
+      if (place) {
+          setStations(place.stations.slice(0, dataCount));
+          setPhase('input');
+      }
+  };
+
+  const ensureApiKey = async () => {
+    // @ts-ignore
+    const hasKey = await window.aistudio.hasSelectedApiKey();
+    if (!hasKey) {
+        // @ts-ignore
+        await window.aistudio.openSelectKey();
+    }
+  };
+
+  const startAssociation = async () => {
+    await ensureApiKey();
+
+    setIsGenerating(true);
+    setPhase('association');
+    setStartTime(Date.now());
+    
+    const items: MemoryPalace['items'] = [];
+    try {
+        for (let i = 0; i < dataCount; i++) {
+            const story = await generateBizarreStory(userInputs[i], stations[i], method?.name || 'Loci', placeDesc);
+            const imageUrl = await generateMemoryImage(story, stations[i], imageSize);
+            items.push({
+                concept: userInputs[i],
+                station: stations[i],
+                story: story,
+                imageUrl: imageUrl || undefined
+            });
+        }
+        setMemoryItems(items);
+    } catch (error: any) {
+        console.error("Loci Training Generation Error:", error);
+        if (error.message?.includes('PERMISSION_DENIED') || error.message?.includes('403')) {
+            showToast("Tu clave API no tiene permisos. Por favor, selecciona una clave de un proyecto de pago.", "error");
+            // @ts-ignore
+            await window.aistudio.openSelectKey();
+            setPhase('input');
+        } else {
+            showToast("Error generando palacio. Reintenta.", "error");
+            setPhase('input');
+        }
+    } finally {
+        setIsGenerating(false);
+    }
   };
 
   const handleTestSubmit = async () => {
-      let correctCount = 0;
-      stations.forEach(st => {
-          const userAnswer = recallAnswers[st.id]?.toLowerCase() || "";
-          const correctAnswer = st.concept.toLowerCase();
-          
-          if (userAnswer.length > 2 && correctAnswer.includes(userAnswer)) {
-              correctCount++;
+      let correct = 0;
+      userInputs.forEach((original, idx) => {
+          const answer = recallAnswers[idx].toLowerCase().trim();
+          const target = original.toLowerCase().trim();
+          if (answer.length > 2 && (target.includes(answer) || answer.includes(target))) {
+              correct++;
           }
       });
-      
-      const finalScore = Math.round((correctCount / 5) * 100);
-      const durationSeconds = (Date.now() - startTime) / 1000;
-
+      const finalScore = Math.round((correct / dataCount) * 100);
       setScore(finalScore);
       setPhase('result');
-      
-      // Persist to Backend
+
+      // Save to History/Logs
       await logReading({
           exerciseType: 'loci',
-          levelOrSpeed: 1, // Phase 1 of Loci
-          durationSeconds: durationSeconds,
+          levelOrSpeed: 1,
+          durationSeconds: (Date.now() - startTime) / 1000,
           wpmCalculated: 0,
           comprehensionRate: finalScore,
-          errors: 5 - correctCount
+          errors: dataCount - correct
       });
 
-      if (onComplete) onComplete(finalScore);
+      // Save Palace to DB
+      if (user) {
+          const palace: MemoryPalace = {
+              id: `pal-${Date.now()}`,
+              userId: user.id,
+              name: `Sesión ${new Date().toLocaleDateString()}`,
+              method: method?.id as any,
+              description: placeDesc,
+              items: memoryItems,
+              timestamp: Date.now()
+          };
+          await dbService.addMemoryPalace(palace);
+          setSavedPalaces(prev => [palace, ...prev]);
+      }
   };
 
-  const resetBuilder = () => {
-      setStations([]);
-      setNextStationId(1);
-      setRecallAnswers({});
-  };
-
+  // --- Renderers ---
   return (
-    <div className="flex-1 flex flex-col h-full bg-background-dark font-display relative overflow-hidden transition-colors duration-700">
+    <div className="flex-1 flex flex-col h-full bg-[#0d1810] font-display relative overflow-hidden text-white">
       
-      {/* Styles for dynamic line drawing */}
-      <style>{`
-        @keyframes drawLine {
-          from { stroke-dashoffset: 100; opacity: 0; }
-          to { stroke-dashoffset: 0; opacity: 0.6; }
-        }
-        .path-draw {
-          stroke-dasharray: 100;
-          stroke-dashoffset: 100;
-          animation: drawLine 0.8s ease-out forwards;
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
-        }
-        .animate-float {
-            animation: float 6s ease-in-out infinite;
-        }
-      `}</style>
-
-      {/* Immersive Background */}
-      <div className="absolute inset-0 bg-[#0f172a] overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/30 via-[#0f172a] to-[#0f172a]"></div>
-          {/* Animated Orbs */}
-          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-[80px] animate-pulse"></div>
-          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/10 rounded-full blur-[80px] animate-pulse delay-700"></div>
-          {/* Grid Pattern */}
-          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5"></div>
+      {/* Background FX */}
+      <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-[-20%] left-[-10%] w-full h-full bg-primary/5 rounded-full blur-[120px]"></div>
+          <div className="absolute bottom-[-20%] right-[-10%] w-full h-full bg-blue-500/5 rounded-full blur-[120px]"></div>
       </div>
 
-      <header className="flex items-center justify-between px-4 py-4 z-10 relative bg-gradient-to-b from-[#0f172a] to-transparent">
-        <button onClick={onBack} className="p-2 rounded-full hover:bg-white/10 text-white transition-colors">
+      <header className="flex items-center justify-between px-6 py-4 z-20 bg-[#0d1810]/80 backdrop-blur-md border-b border-white/5">
+        <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-white/10 transition-colors">
             <span className="material-symbols-outlined">close</span>
         </button>
         <div className="flex flex-col items-center">
-            <span className="text-[10px] uppercase tracking-widest font-bold text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.5)]">Entrenamiento</span>
-            <span className="text-sm font-bold text-white">Palacio Mental</span>
+            <span className="text-[10px] uppercase tracking-widest font-bold text-primary animate-pulse">Supermemoria</span>
+            <h2 className="text-sm font-bold">{method ? method.name : 'Sistemas de Mnemotecnia'}</h2>
         </div>
-        <div className="w-10"></div> 
+        <button onClick={() => setPhase('library')} className="p-2 rounded-full hover:bg-white/10">
+            <span className="material-symbols-outlined">history</span>
+        </button>
       </header>
 
-      {/* Dynamic Content Container */}
-      <div className="flex-1 relative z-10 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col p-6 z-10 overflow-y-auto no-scrollbar">
         
-        {phase === 'select' && (
-            <main key="select" className="flex-1 flex flex-col px-6 pt-4 animate-in fade-in slide-in-from-bottom-8 duration-700 ease-out overflow-y-auto no-scrollbar">
-                <div className="text-center mb-8">
-                    <div className="inline-block p-3 rounded-full bg-yellow-500/10 mb-4 animate-float">
-                         <span className="material-symbols-outlined text-4xl text-yellow-400">castle</span>
+        {/* PHASE: LIBRARY */}
+        {phase === 'library' && (
+            <div className="flex-1 flex flex-col animate-in slide-in-from-right-4">
+                <h1 className="text-3xl font-bold mb-6">Tus Palacios</h1>
+                {savedPalaces.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50">
+                        <span className="material-symbols-outlined text-6xl mb-4">castle</span>
+                        <p>No tienes palacios guardados todavía.</p>
+                        <Button variant="ghost" className="mt-4" onClick={() => setPhase('system')}>Empezar Entrenamiento</Button>
                     </div>
-                    <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Construye tu Palacio</h1>
-                    <p className="text-gray-400 text-sm leading-relaxed max-w-xs mx-auto">
-                        Asocia conocimientos abstractos a lugares físicos familiares para recordarlos siempre.
-                    </p>
+                ) : (
+                    <div className="space-y-4">
+                        {savedPalaces.map(pal => (
+                            <button key={pal.id} onClick={() => { setSelectedPalace(pal); setPhase('view_saved'); }} className="w-full p-4 rounded-xl bg-white/5 border border-white/10 hover:border-primary/50 transition-all flex items-center justify-between group">
+                                <div className="text-left">
+                                    <h3 className="font-bold">{pal.name}</h3>
+                                    <p className="text-xs text-gray-500 uppercase">{pal.method} • {pal.items.length} datos</p>
+                                </div>
+                                <span className="material-symbols-outlined text-gray-500 group-hover:text-primary">visibility</span>
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+        )}
+
+        {/* PHASE: VIEW SAVED */}
+        {phase === 'view_saved' && selectedPalace && (
+            <div className="flex-1 flex flex-col animate-in zoom-in-95">
+                <div className="flex items-center gap-4 mb-6">
+                    <button onClick={() => setPhase('library')} className="p-2 bg-white/5 rounded-full"><span className="material-symbols-outlined">arrow_back</span></button>
+                    <h2 className="text-xl font-bold">{selectedPalace.name}</h2>
                 </div>
-                
-                <div className="grid gap-4 max-w-sm mx-auto w-full">
-                    {ROOMS.map((room, idx) => (
-                        <button 
-                            key={room.id}
-                            onClick={() => handleRoomSelect(room)}
-                            className={`group flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-white/20 hover:bg-white/10 transition-all text-left shadow-lg relative overflow-hidden`}
-                            style={{ animationDelay: `${idx * 100}ms` }}
-                        >
-                            <div className={`absolute inset-0 bg-gradient-to-r ${room.color} opacity-0 group-hover:opacity-10 transition-opacity duration-500`}></div>
-                            
-                            <div className={`size-14 rounded-xl bg-gradient-to-br ${room.color} flex items-center justify-center ${room.text} group-hover:scale-110 transition-transform duration-300 shadow-inner border border-white/10`}>
-                                <span className="material-symbols-outlined text-2xl">{room.icon}</span>
+                <div className="space-y-6 pb-20">
+                    {selectedPalace.items.map((item, idx) => (
+                        <div key={idx} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+                            {item.imageUrl && <img src={item.imageUrl} alt={item.concept} className="w-full aspect-video object-cover" />}
+                            <div className="p-4">
+                                <span className="text-[10px] text-primary font-bold uppercase">{item.station}</span>
+                                <h3 className="text-lg font-bold mb-2">"{item.concept}"</h3>
+                                <p className="text-sm text-gray-400 italic">{item.story}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )}
+
+        {/* PHASE 1: SYSTEM SELECT */}
+        {phase === 'system' && (
+            <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-4">
+                <h1 className="text-3xl font-bold mb-2">Elige tu Sistema</h1>
+                <p className="text-gray-400 text-sm mb-8">Selecciona la base para tus asociaciones mentales.</p>
+                <div className="space-y-4">
+                    {SYSTEMS.map(sys => (
+                        <button key={sys.id} onClick={() => handleSystemSelect(sys)} className="w-full p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-primary/40 hover:bg-white/10 transition-all flex items-center gap-5 text-left group">
+                            <div className={`size-14 rounded-xl bg-gradient-to-br ${sys.color} flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform`}>
+                                <span className="material-symbols-outlined text-3xl">{sys.icon}</span>
                             </div>
                             <div>
-                                <h3 className="font-bold text-white text-lg">{room.name}</h3>
-                                <p className="text-xs text-gray-500 group-hover:text-gray-400 transition-colors">Iniciar Construcción</p>
+                                <h3 className="text-lg font-bold">{sys.name}</h3>
+                                <p className="text-xs text-gray-500">{sys.desc}</p>
                             </div>
-                            <span className="material-symbols-outlined text-gray-700 ml-auto group-hover:text-white transition-all group-hover:translate-x-1">arrow_forward_ios</span>
                         </button>
                     ))}
                 </div>
-            </main>
+            </div>
         )}
 
-        {phase === 'build' && selectedRoom && (
-            <main key="build" className="flex-1 flex flex-col animate-in fade-in zoom-in-95 duration-500">
-                <div className="absolute top-2 w-full px-6 py-2 z-20 flex justify-center pointer-events-none">
-                        <div className="flex items-center gap-3 bg-black/70 backdrop-blur-xl px-5 py-2.5 rounded-full border border-white/10 shadow-2xl animate-in slide-in-from-top-4 duration-500">
-                            <span className="material-symbols-outlined text-yellow-400 animate-pulse">place</span>
-                            <p className="text-center text-sm text-white font-medium">
-                                {stations.length < 5 ? (
-                                    <>Ubica: <span className="text-yellow-400 font-bold">"{CONCEPTS_TO_MEMORIZE[nextStationId-1]}"</span></>
-                                ) : (
-                                    <span className="text-green-400 font-bold">¡Palacio Completo!</span>
-                                )}
-                            </p>
-                        </div>
-                </div>
-
-                {/* Interactive Room Canvas */}
-                <div 
-                    className="flex-1 m-4 mb-0 bg-[#1e293b] rounded-3xl border border-white/10 relative overflow-hidden cursor-crosshair shadow-2xl group"
-                    onClick={handleCanvasClick}
-                >
-                    {/* Room Background Hint */}
-                    <div className="absolute inset-0 opacity-5 pointer-events-none flex items-center justify-center transition-opacity duration-700 group-hover:opacity-10">
-                        <span className="material-symbols-outlined text-[200px] text-white">{selectedRoom.icon}</span>
-                    </div>
-                    
-                    {/* SVG Layer for Connecting Lines */}
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
-                        <defs>
-                            <filter id="glow">
-                                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-                                <feMerge>
-                                    <feMergeNode in="coloredBlur"/>
-                                    <feMergeNode in="SourceGraphic"/>
-                                </feMerge>
-                            </filter>
-                        </defs>
-                        {stations.map((st, i) => {
-                            if (i === 0) return null;
-                            const prev = stations[i-1];
-                            return (
-                                <line 
-                                    key={`line-${i}`}
-                                    x1={`${prev.x}%`} y1={`${prev.y}%`}
-                                    x2={`${st.x}%`} y2={`${st.y}%`}
-                                    stroke="#fbbf24"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    className="path-draw"
-                                    filter="url(#glow)"
-                                />
-                            );
-                        })}
-                    </svg>
-
-                    {/* Stations / Dots */}
-                    {stations.map((st, i) => (
-                        <div 
-                            key={st.id}
-                            className="absolute flex flex-col items-center gap-2 z-10"
-                            style={{ left: `${st.x}%`, top: `${st.y}%`, transform: 'translate(-50%, -50%)' }}
-                        >
-                            {/* Dot */}
-                            <div className="relative group/dot">
-                                {i === stations.length - 1 && (
-                                    <div className="absolute inset-0 bg-yellow-500 rounded-full animate-ping opacity-75"></div>
-                                )}
-                                <div className="relative size-12 bg-gradient-to-br from-yellow-400 to-yellow-600 text-black font-bold text-lg rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(234,179,8,0.5)] border-2 border-white ring-4 ring-yellow-500/20 animate-[bounce_0.5s_ease-out]">
-                                    {st.id}
-                                </div>
-                            </div>
-                            
-                            {/* Label */}
-                            <div className="bg-black/80 px-3 py-1.5 rounded-lg text-xs text-white whitespace-nowrap backdrop-blur-md border border-white/10 shadow-xl font-bold tracking-wide animate-in slide-in-from-bottom-2 fade-in duration-300">
-                                {st.concept}
-                            </div>
-                        </div>
+        {/* PHASE: QUANTITY */}
+        {phase === 'qty' && (
+            <div className="flex-1 flex flex-col animate-in slide-in-from-right-4 items-center justify-center text-center">
+                <h1 className="text-2xl font-bold mb-4">¿Cuántos datos memorizar?</h1>
+                <div className="grid grid-cols-3 gap-3 w-full max-w-xs">
+                    {[3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                        <button key={n} onClick={() => handleQtySelect(n)} className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-primary/20 hover:border-primary font-bold text-xl">{n}</button>
                     ))}
                 </div>
-
-                {/* Bottom Controls */}
-                <div className="p-6 pb-8 pt-6">
-                    <div className="flex justify-between items-center mb-4 px-1">
-                        <div className="flex gap-1">
-                            {[1,2,3,4,5].map(n => (
-                                <div key={n} className={`h-1.5 w-6 rounded-full transition-colors duration-300 ${n <= stations.length ? 'bg-yellow-500' : 'bg-gray-700'}`}></div>
-                            ))}
-                        </div>
-                        <button onClick={resetBuilder} className="text-xs text-red-400 hover:text-red-300 font-medium transition-colors">Reiniciar</button>
-                    </div>
-                    
-                    <button 
-                        disabled={stations.length < 5}
-                        onClick={() => setPhase('test')}
-                        className={`
-                            w-full h-14 font-bold rounded-xl shadow-lg transition-all duration-300 flex items-center justify-center gap-2
-                            ${stations.length < 5 
-                                ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-white/5' 
-                                : 'bg-yellow-500 text-black hover:bg-yellow-400 hover:scale-[1.02] shadow-[0_0_20px_rgba(234,179,8,0.4)]'
-                            }
-                        `}
-                    >
-                        {stations.length < 5 ? 'Completa el recorrido...' : 'Probar Memoria'}
-                        {stations.length >= 5 && <span className="material-symbols-outlined animate-pulse">psychology</span>}
-                    </button>
-                </div>
-            </main>
+            </div>
         )}
 
-        {phase === 'test' && (
-            <main key="test" className="flex-1 flex flex-col px-6 pt-6 overflow-y-auto no-scrollbar relative z-10 animate-in slide-in-from-right-8 duration-500">
-                <div className="text-center mb-6">
-                    <h2 className="text-2xl font-bold text-white mb-1">Recuperación Activa</h2>
-                    <p className="text-sm text-gray-400">Recorre tu palacio mental y escribe qué guardaste.</p>
+        {/* PHASE: SETUP (Loci only) */}
+        {phase === 'setup' && (
+            <div className="flex-1 flex flex-col animate-in slide-in-from-right-4">
+                <h1 className="text-2xl font-bold mb-6">Describe tu Palacio</h1>
+                <div className="space-y-4 mb-8">
+                    <textarea 
+                        className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:ring-1 focus:ring-primary outline-none"
+                        placeholder="Ej: Es mi casa de la infancia. Es luminosa, huele a madera y tiene un pasillo largo con cuadros..."
+                        value={placeDesc}
+                        onChange={(e) => setPlaceDesc(e.target.value)}
+                    />
+                    <h3 className="text-xs font-bold text-gray-500 uppercase">O elige un preajuste:</h3>
+                    <div className="grid grid-cols-1 gap-2">
+                        {PRESET_PLACES.map(place => (
+                            <button key={place.id} onClick={() => handlePlaceSelect(place.id)} className="w-full p-4 rounded-xl bg-white/5 border border-white/10 hover:border-primary/50 text-left">
+                                {place.name}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-                
-                <div className="space-y-4 pb-24">
-                    {stations.map((st, idx) => (
-                        <div 
-                            key={st.id} 
-                            className="relative bg-white/5 rounded-2xl p-5 border border-white/10 focus-within:border-yellow-500/50 focus-within:bg-white/10 transition-all duration-300"
-                            style={{ animationDelay: `${idx * 100}ms` }}
-                        >
-                            <div className="flex items-center gap-3 mb-3">
-                                <div className="bg-yellow-500 text-black size-6 rounded-full flex items-center justify-center font-bold text-xs shadow-md">
-                                    {st.id}
-                                </div>
-                                <span className="text-xs text-gray-400 font-mono uppercase tracking-widest">Ubicación {st.id}</span>
-                            </div>
-                            
+                <Button disabled={!placeDesc && stations.length === 0} onClick={() => setPhase('input')}>Continuar</Button>
+            </div>
+        )}
+
+        {/* PHASE 3: INPUT CONCEPTS */}
+        {phase === 'input' && (
+            <div className="flex-1 flex flex-col animate-in slide-in-from-right-4">
+                <h1 className="text-2xl font-bold mb-2">¿Qué quieres recordar?</h1>
+                <div className="flex items-center justify-between mb-8">
+                    <p className="text-xs text-gray-500 uppercase tracking-widest">Introduce {dataCount} conceptos</p>
+                    {/* Image Size Selection Affordance */}
+                    <div className="flex items-center gap-2 bg-white/10 p-1 rounded-lg">
+                        {(['1K', '2K', '4K'] as ImageSize[]).map(s => (
+                            <button 
+                                key={s} 
+                                onClick={() => setImageSize(s)}
+                                className={`px-2 py-1 text-[10px] font-bold rounded transition-colors ${imageSize === s ? 'bg-primary text-black' : 'text-gray-400'}`}
+                            >
+                                {s}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <div className="space-y-3 flex-1 pb-10">
+                    {userInputs.map((val, i) => (
+                        <div key={i} className="flex items-center gap-4 bg-white/5 p-3 rounded-xl border border-white/10 focus-within:border-primary/50 transition-all">
+                            <div className="size-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0">{i+1}</div>
                             <input 
                                 type="text" 
-                                placeholder="¿Qué concepto era?"
-                                className="w-full bg-black/20 border-b-2 border-white/10 rounded-t-lg px-0 py-2 text-lg text-white placeholder:text-gray-600 focus:border-yellow-500 focus:ring-0 outline-none transition-all font-medium"
-                                onChange={(e) => setRecallAnswers({...recallAnswers, [st.id]: e.target.value})}
-                                autoFocus={idx === 0}
+                                placeholder={`Dato ${i+1}...`}
+                                value={val}
+                                onChange={(e) => {
+                                    const next = [...userInputs];
+                                    next[i] = e.target.value;
+                                    setUserInputs(next);
+                                }}
+                                className="bg-transparent border-none focus:ring-0 w-full text-white placeholder:text-gray-600"
                             />
                         </div>
                     ))}
                 </div>
-
-                <div className="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-[#0f172a] via-[#0f172a] to-transparent">
-                    <button 
-                        onClick={handleTestSubmit}
-                        className="w-full h-14 bg-green-500 text-white font-bold rounded-xl shadow-[0_0_20px_rgba(34,197,94,0.4)] hover:bg-green-400 hover:scale-[1.02] transition-all"
+                <div className="sticky bottom-0 bg-[#0d1810] py-4">
+                    <Button 
+                        disabled={userInputs.some(v => v.length < 2)} 
+                        onClick={startAssociation}
+                        fullWidth
                     >
-                        Verificar Resultados
-                    </button>
+                        Generar Palacio Mental
+                    </Button>
                 </div>
-            </main>
+            </div>
         )}
 
+        {/* PHASE 4: ASSOCIATION (CORE) */}
+        {phase === 'association' && (
+            <div className="flex-1 flex flex-col">
+                {isGenerating ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center">
+                        <div className="size-20 border-4 border-primary border-t-transparent rounded-full animate-spin mb-6"></div>
+                        <h2 className="text-xl font-bold">La IA está pintando tu Palacio...</h2>
+                        <p className="text-gray-500 text-sm mt-2">Usando Gemini 3 Pro ({imageSize})</p>
+                    </div>
+                ) : (
+                    <div className="flex-1 flex flex-col animate-in zoom-in-95">
+                        <div className="flex-1 flex flex-col items-center py-4">
+                            <div className="w-full aspect-video rounded-2xl bg-white/5 border border-white/10 overflow-hidden mb-6 shadow-2xl relative">
+                                {memoryItems[currentStationIdx]?.imageUrl ? (
+                                    <img src={memoryItems[currentStationIdx].imageUrl} alt="Memory scene" className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 gap-2">
+                                        <span className="material-symbols-outlined text-4xl">broken_image</span>
+                                        <span className="text-xs">Imagen no disponible</span>
+                                    </div>
+                                )}
+                                <div className="absolute top-2 right-2 bg-black/60 px-2 py-1 rounded text-[8px] font-bold text-primary">
+                                    {imageSize}
+                                </div>
+                            </div>
+                            
+                            <h3 className="text-xs font-bold text-primary uppercase tracking-widest mb-1">
+                                Estación {currentStationIdx + 1}: {memoryItems[currentStationIdx]?.station}
+                            </h3>
+                            <h2 className="text-3xl font-bold mb-6 text-center px-4">"{memoryItems[currentStationIdx]?.concept}"</h2>
+                            
+                            <div className="bg-white/5 border border-primary/20 p-5 rounded-2xl max-w-sm w-full relative">
+                                <span className="material-symbols-outlined absolute -top-3 -left-3 size-8 bg-primary text-black rounded-full flex items-center justify-center text-sm font-bold">psychology</span>
+                                <p className="text-base leading-relaxed text-gray-200 italic">
+                                    {memoryItems[currentStationIdx]?.story}
+                                </p>
+                            </div>
+                            <p className="mt-6 text-xs text-gray-500 text-center px-8 italic">Visualiza la escena con total detalle antes de pasar.</p>
+                        </div>
+
+                        <div className="pb-8">
+                            {currentStationIdx < dataCount - 1 ? (
+                                <Button fullWidth onClick={() => setCurrentStationIdx(p => p + 1)}>Siguiente Estación</Button>
+                            ) : (
+                                <Button fullWidth onClick={() => setPhase('test')} variant="outline" className="border-primary text-primary">Ir al Test de Recuerdo</Button>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+        )}
+
+        {/* PHASE 5: TEST */}
+        {phase === 'test' && (
+            <div className="flex-1 flex flex-col animate-in slide-in-from-right-4">
+                <h1 className="text-2xl font-bold mb-2">Recuperación Activa</h1>
+                <p className="text-gray-400 text-sm mb-8">Recorre tu mente y recupera los datos.</p>
+                <div className="space-y-4 flex-1">
+                    {stations.map((station, i) => (
+                        <div key={i} className="bg-white/5 p-4 rounded-xl border border-white/10">
+                            <label className="text-[10px] text-gray-500 uppercase font-bold block mb-2">{i+1}. {station}</label>
+                            <input 
+                                type="text" 
+                                placeholder="¿Qué había aquí?"
+                                value={recallAnswers[i]}
+                                onChange={(e) => {
+                                    const next = [...recallAnswers];
+                                    next[i] = e.target.value;
+                                    setRecallAnswers(next);
+                                }}
+                                className="w-full bg-black/30 border-none rounded-lg text-white"
+                            />
+                        </div>
+                    ))}
+                </div>
+                <Button fullWidth onClick={handleTestSubmit} className="mt-8">Verificar Mi Memoria</Button>
+            </div>
+        )}
+
+        {/* PHASE 6: RESULT */}
         {phase === 'result' && (
-            <main key="result" className="flex-1 flex flex-col items-center justify-center p-6 text-center animate-in zoom-in-95 duration-500 relative z-10">
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-green-500/5 to-transparent pointer-events-none"></div>
-                
-                <div className={`size-32 rounded-full flex items-center justify-center mb-6 border-4 shadow-[0_0_50px_rgba(255,255,255,0.1)] ${score > 60 ? 'border-green-500 bg-green-500/20' : 'border-orange-500 bg-orange-500/20'} animate-float`}>
-                    <span className="material-symbols-outlined text-7xl text-white drop-shadow-lg">
-                        {score > 60 ? 'emoji_events' : 'psychology_alt'}
-                    </span>
+            <div className="flex-1 flex flex-col items-center justify-center text-center animate-in zoom-in-95">
+                <div className={`size-32 rounded-full border-4 flex items-center justify-center mb-6 shadow-2xl ${score > 60 ? 'border-primary bg-primary/10' : 'border-orange-500 bg-orange-500/10'}`}>
+                    <span className="material-symbols-outlined text-7xl">{score > 60 ? 'emoji_events' : 'psychology_alt'}</span>
                 </div>
+                <h1 className="text-5xl font-bold mb-2">{score}%</h1>
+                <p className="text-gray-400 uppercase tracking-widest text-xs font-bold mb-10">Precisión de Retención</p>
                 
-                <h2 className="text-5xl font-bold text-white mb-2 tracking-tight">{score}%</h2>
-                <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-6">Precisión de Memoria</p>
+                <p className="text-sm text-gray-500 mb-8">Tu Palacio de Memoria ha sido guardado en tu historial para futuras revisiones.</p>
 
-                <div className="bg-white/5 rounded-2xl p-6 border border-white/10 max-w-xs w-full mb-8 backdrop-blur-md">
-                    <p className="text-gray-300 leading-relaxed text-sm">
-                        {score > 80 
-                            ? "¡Increíble! Has creado conexiones neuronales sólidas. Tu palacio mental es estable." 
-                            : "Buen intento. Recuerda: cuanto más absurda o exagerada sea la imagen mental, más difícil será olvidarla."}
-                    </p>
+                <div className="w-full max-w-xs space-y-4">
+                    <Button fullWidth onClick={onBack}>Finalizar Entrenamiento</Button>
+                    <button onClick={() => window.location.reload()} className="text-primary font-bold hover:underline text-sm">Crear otro Palacio</button>
                 </div>
-                
-                <div className="w-full max-w-xs space-y-3">
-                    <button onClick={() => {
-                            resetBuilder();
-                            setPhase('select');
-                        }} className="w-full py-4 bg-white/10 text-white font-bold rounded-xl hover:bg-white/20 transition-all border border-white/5">
-                        Construir Nuevo Palacio
-                    </button>
-                    <button onClick={onBack} className="w-full py-4 bg-yellow-500 text-black font-bold rounded-xl hover:bg-yellow-400 transition-all shadow-lg hover:shadow-yellow-500/20">
-                        Finalizar Entrenamiento
-                    </button>
-                </div>
-            </main>
+            </div>
         )}
+
       </div>
     </div>
   );

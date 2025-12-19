@@ -24,7 +24,7 @@ import LociTraining from './pages/LociTraining';
 import Settings from './pages/Settings';
 import EditProfile from './pages/EditProfile';
 import Rewards from './pages/Rewards';
-import TrainingsList from './pages/TrainingsList'; // New
+import TrainingsList from './pages/TrainingsList';
 import BottomNav from './components/BottomNav';
 import Header from './components/Header';
 import AchievementModal from './components/AchievementModal';
@@ -50,7 +50,7 @@ const MainLayout: React.FC = () => {
       }
   }, [user, loading]);
 
-  // Redirect to Welcome on Logout (Fix for blank screen)
+  // Redirect to Welcome on Logout
   useEffect(() => {
       if (!loading && !user && currentRoute !== AppRoute.LOGIN && currentRoute !== AppRoute.REGISTER && currentRoute !== AppRoute.WELCOME) {
           navigate(AppRoute.WELCOME);
@@ -88,14 +88,11 @@ const MainLayout: React.FC = () => {
       case AppRoute.TRAININGS: return <TrainingsList onNavigate={navigate} onBack={() => navigate(AppRoute.DASHBOARD)} />;
       case AppRoute.LIBRARY: return <Library onNavigate={navigate} onSelectBook={(id) => { setCurrentBookId(id); navigate(AppRoute.READING); }} />;
       case AppRoute.READING: 
-        // Search in User Books OR Practice Library
-        const selectedBook = books.find(b => b.id === currentBookId) || PRACTICE_LIBRARY.find(b => b.id === currentBookId) || books[0];
-        
-        if (!selectedBook) return <Library onNavigate={navigate} onSelectBook={(id) => { setCurrentBookId(id); navigate(AppRoute.READING); }} />;
+        const selectedBook = [...books, ...PRACTICE_LIBRARY].find(b => b.id === currentBookId);
         return (
           <ReadingSession 
-            book={selectedBook} 
-            onBack={() => navigate(AppRoute.LIBRARY)} 
+            initialBook={selectedBook} 
+            onBack={() => navigate(AppRoute.DASHBOARD)} 
             onComplete={async (metrics) => {
               await logReading(metrics);
             }} 
@@ -107,9 +104,7 @@ const MainLayout: React.FC = () => {
       case AppRoute.WORD_SPAN: return (
         <WordSpan 
           onBack={() => navigate(AppRoute.DASHBOARD)} 
-          onComplete={async (score) => {
-            // Logic handled inside WordSpan, but we can add global hooks here if needed
-          }}
+          onComplete={async (score) => {}}
         />
       );
       case AppRoute.MEMORY_TRAINING: return (

@@ -1,5 +1,6 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, ReadingLog, Book, Flashcard, RetentionLog, Notification, Achievement, Reward } from '../types';
+import { User, ReadingLog, Book, Flashcard, Notification, Achievement, Reward } from '../types';
 import { supabase } from '../utils/supabase';
 import { dbService } from '../services/db';
 import { MOCK_USER_STATS, SUGGESTED_BOOKS, MOCK_NOTIFICATIONS, ACHIEVEMENTS_LIST, AVATARS } from '../constants';
@@ -17,7 +18,7 @@ interface AuthContextType {
   addBook: (book: Book) => Promise<string | null>;
   addFlashcards: (cards: Flashcard[]) => Promise<void>;
   updateFlashcard: (card: Flashcard) => Promise<void>;
-  equipReward: (reward: Reward) => Promise<void>; // New
+  equipReward: (reward: Reward) => Promise<void>;
   loginAsGuest: () => void;
   logout: () => Promise<void>;
   setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>;
@@ -33,71 +34,117 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
-  // Initial Load
+  // Initial Load & Auth Listeners
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) loadUserData(session.user.id, session.user.email);
-      else setLoading(false);
-    });
+    let mounted = true;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-         if (!user || user.id !== session.user.id) loadUserData(session.user.id, session.user.email);
-      } else if (!user || user.id !== 'guest') {
-         // Only reset if we are not in guest mode
-         setUser(null);
-         setBooks([]);
-         setReadingLogs([]);
-         setLoading(false);
+    const initAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          // CRITICAL: If the refresh token is missing or invalid in localStorage, 
+          // Supabase will throw "Refresh Token Not Found". We must clear it.
+          if (error.message.includes('Refresh Token Not Found') || error.message.includes('invalid_refresh_token')) {
+            console.warn("Invalid auth session detected, clearing storage...");
+            await supabase.auth.signOut();
+          } else {
+            console.error("Auth session error:", error.message);
+          }
+          if (mounted) setLoading(false);
+          return;
+        }
+
+        if (session?.user && mounted) {
+          await loadUserData(session.user.id, session.user.email);
+        } else {
+          if (mounted) {
+            setLoading(false);
+            setBooks(SUGGESTED_BOOKS);
+          }
+        }
+      } catch (err) {
+        console.error("Auth initialization failed:", err);
+        if (mounted) setLoading(false);
+      }
+    };
+
+    initAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+
+      if (event === 'SIGNED_IN' && session?.user) {
+        // Only load if user isn't already loaded or changed
+        if (!user || user.id !== session.user.id) {
+          await loadUserData(session.user.id, session.user.email);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        // Clear all state on sign out
+        if (user?.id !== 'guest') {
+            setUser(null);
+            setBooks(SUGGESTED_BOOKS);
+            setReadingLogs([]);
+            setFlashcards([]);
+            setLoading(false);
+        }
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loadUserData = async (userId: string, email?: string) => {
-    setLoading(true);
-    let profile = await dbService.getUserProfile(userId);
+    try {
+      setLoading(true);
+      let profile = await dbService.getUserProfile(userId);
 
-    // First time user? Create mock profile
-    if (!profile && email) {
-       const defaultUser: User = {
+      // First time user? Create default profile
+      if (!profile && email) {
+        const defaultUser: User = {
           id: userId,
-          name: email.split('@')[0], 
+          name: email.split('@')[0],
           email: email,
           avatarUrl: AVATARS[0],
           stats: { ...MOCK_USER_STATS, xp: 0, tel: 200, streak: 1, lastActiveDate: Date.now(), maxSchulteLevel: 1, maxWordSpan: 3 },
           joinedDate: Date.now(),
           baselineWPM: 200,
           level: "Lector Iniciado",
-          preferences: { 
-            dailyGoalMinutes: 15, 
-            targetWPM: 300, 
-            difficultyLevel: 'Básico', 
-            notificationsEnabled: true, 
+          preferences: {
+            dailyGoalMinutes: 15,
+            targetWPM: 300,
+            difficultyLevel: 'Básico',
+            notificationsEnabled: true,
             soundEnabled: false,
-            unlockedRewards: [] 
+            unlockedRewards: []
           },
           achievements: []
         };
         await dbService.createUserProfile(defaultUser);
         profile = defaultUser;
-    }
+      }
 
-    if (profile) {
-      setUser(profile);
-      const [fetchedLogs, fetchedBooks, fetchedCards] = await Promise.all([
-        dbService.getReadingLogs(userId),
-        dbService.getUserBooks(userId),
-        dbService.getFlashcards(userId)
-      ]);
-      
-      setReadingLogs(fetchedLogs);
-      setBooks(fetchedBooks.length > 0 ? fetchedBooks : SUGGESTED_BOOKS);
-      setFlashcards(fetchedCards);
-      setNotifications(MOCK_NOTIFICATIONS);
+      if (profile) {
+        setUser(profile);
+        const [fetchedLogs, fetchedBooks, fetchedCards] = await Promise.all([
+          dbService.getReadingLogs(userId),
+          dbService.getUserBooks(userId),
+          dbService.getFlashcards(userId)
+        ]);
+        
+        setReadingLogs(fetchedLogs);
+        setBooks(fetchedBooks.length > 0 ? fetchedBooks : SUGGESTED_BOOKS);
+        setFlashcards(fetchedCards);
+        setNotifications(MOCK_NOTIFICATIONS);
+      }
+    } catch (err) {
+      console.error("Error loading user data:", err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const loginAsGuest = () => {
@@ -111,11 +158,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         joinedDate: Date.now(),
         baselineWPM: 200,
         level: "Explorador",
-        preferences: { 
-          dailyGoalMinutes: 15, 
-          targetWPM: 250, 
-          difficultyLevel: 'Básico', 
-          notificationsEnabled: false, 
+        preferences: {
+          dailyGoalMinutes: 15,
+          targetWPM: 250,
+          difficultyLevel: 'Básico',
+          notificationsEnabled: false,
           soundEnabled: true,
           unlockedRewards: []
         },
@@ -139,30 +186,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateUser = async (updates: Partial<User>) => {
     if (!user) return;
     const updated = { ...user, ...updates };
-    setUser(updated); // Optimistic UI
+    setUser(updated);
     
-    if (user.id === 'guest') return; // Skip DB calls for guest
+    if (user.id === 'guest') return;
 
-    // Split updates to DB services
     if (updates.stats) await dbService.updateUserStats(user.id, updates.stats);
     if (updates.preferences) await dbService.updateUserPreferences(user.id, updates.preferences);
-    // General update fallback if needed in dbService
     await dbService.createUserProfile(updated); 
   };
 
   const equipReward = async (reward: Reward) => {
       if (!user) return;
-      
       let updates: Partial<User> = {};
-
       if (reward.type === 'theme') {
           updates = { preferences: { ...user.preferences, themeColor: reward.value } };
       } else if (reward.type === 'avatar') {
           updates = { avatarUrl: reward.value };
-      } else if (reward.type === 'book') {
-          // Add logic to unlock specific book content if needed
       }
-
       await updateUser(updates);
   };
 
@@ -171,24 +211,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const now = Date.now();
     const newLog: ReadingLog = { ...logData, id: `temp-${now}`, userId: user.id, timestamp: now };
     
-    // Optimistic Update Log List
     setReadingLogs(prev => [...prev, newLog]);
 
-    // Calculate XP & Stats
     const xpGained = logData.exerciseType === 'schulte' ? 25 : (logData.exerciseType === 'word_span' ? 15 : 50);
     const updatedStats = { ...user.stats, xp: user.stats.xp + xpGained, lastActiveDate: now };
     
-    // --- Logic for Schulte/TEL Max updates (Progression System) ---
     if (logData.telCalculated && logData.telCalculated > (user.stats.tel || 0)) {
        updatedStats.tel = logData.telCalculated;
     }
 
-    // Auto-update max level for Schulte
     if (logData.exerciseType === 'schulte' && logData.levelOrSpeed > (user.stats.maxSchulteLevel || 1)) {
         updatedStats.maxSchulteLevel = Math.min(9, logData.levelOrSpeed);
     }
 
-    // Auto-update max level for Word/Number Span
     if (logData.exerciseType === 'word_span' && logData.levelOrSpeed > (user.stats.maxWordSpan || 3)) {
         updatedStats.maxWordSpan = logData.levelOrSpeed;
     }
@@ -199,7 +234,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await dbService.addReadingLog(newLog);
     }
     
-    // Check achievements (Phase 3 logic)
     const newAchievements = checkAchievements(user, [...readingLogs, newLog]);
     if (newAchievements.length > user.achievements.length) {
         updateUser({ achievements: newAchievements });
@@ -218,13 +252,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addBook = async (book: Book) => {
       if (!user) return null;
-      
       if (user.id === 'guest') {
           const mockId = `guest-book-${Date.now()}`;
           setBooks(prev => [{...book, id: mockId}, ...prev]);
           return mockId;
       }
-
       const id = await dbService.addUserBook(book);
       if (id) {
           setBooks(prev => [{...book, id}, ...prev]);
@@ -249,12 +281,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     if (user?.id === 'guest') {
         setUser(null);
-        setBooks([]);
+        setBooks(SUGGESTED_BOOKS);
         setReadingLogs([]);
         return;
     }
     await supabase.auth.signOut();
     setUser(null);
+    setBooks(SUGGESTED_BOOKS);
   };
 
   return (

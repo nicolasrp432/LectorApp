@@ -39,7 +39,6 @@ const Library: React.FC<LibraryProps> = ({ onNavigate, onSelectBook }) => {
             content = await extractTextFromPdf(file);
         } else if (file.type.startsWith("image/")) {
             setLoadingMsg('Escaneando página con Gemini Vision...');
-            // Convert to Base64
             const base64 = await new Promise<string>((resolve) => {
                 const reader = new FileReader();
                 reader.onload = (e) => resolve(e.target?.result as string);
@@ -56,7 +55,7 @@ const Library: React.FC<LibraryProps> = ({ onNavigate, onSelectBook }) => {
             showToast("No se pudo extraer suficiente texto.", 'warning');
         } else {
             const newBook: Book = {
-                id: '',
+                id: `user-${Date.now()}`,
                 title,
                 author: 'Importado',
                 coverUrl: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=300',
@@ -77,20 +76,12 @@ const Library: React.FC<LibraryProps> = ({ onNavigate, onSelectBook }) => {
     }
   };
 
-  const handleSelectPractice = (practiceBook: Book) => {
-      // Logic to pass a "virtual" book to reading session without saving it to user DB yet
-      // In App.tsx we find book by ID. Since Practice Books are in constants, we need to ensure App.tsx can find them.
-      // Current App.tsx uses `books.find`. We should merge lists in App or pass the book object.
-      // HACK for MVP: We use the ID. In App.tsx, we will need to look in PRACTICE_LIBRARY if not found in user books.
-      onSelectBook(practiceBook.id);
-  };
-
   const displayedContent = activeTab === 'books' ? books : PRACTICE_LIBRARY;
 
   return (
     <div className="flex-1 flex flex-col pb-24 overflow-y-auto no-scrollbar bg-background-light dark:bg-background-dark relative">
       {isLoading && (
-          <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center animate-in fade-in">
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center animate-in fade-in">
               <div className="size-16 rounded-full border-4 border-primary border-t-transparent animate-spin mb-4"></div>
               <h3 className="text-xl font-bold text-white mb-1">Analizando</h3>
               <p className="text-gray-400 text-sm">{loadingMsg}</p>
