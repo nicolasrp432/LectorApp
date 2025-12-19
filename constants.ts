@@ -1,5 +1,4 @@
 
-
 import { Book, QuizQuestion, Notification, Achievement, Reward, TrainingModule, AppRoute, Flashcard } from "./types";
 
 export const AVATARS = [
@@ -41,7 +40,7 @@ export const TRAINING_MODULES: TrainingModule[] = [
         title: 'Cadenas Secuenciales',
         description: 'Potencia tu memoria de trabajo recordando secuencias completas.',
         icon: 'pin',
-        route: AppRoute.WORD_SPAN, // Links to WordSpan but user chooses Numbers inside
+        route: AppRoute.WORD_SPAN, 
         colorClass: 'text-pink-500 bg-pink-500/10',
         metrics: [
             { label: 'Span Máx', key: 'maxLevel' },
@@ -68,8 +67,8 @@ export const TRAINING_MODULES: TrainingModule[] = [
         route: AppRoute.MEMORY_TRAINING,
         colorClass: 'text-orange-500 bg-orange-500/10',
         metrics: [
-            { label: 'Tarjetas', key: 'totalSessions' }, // Using sessions as proxy or fetch distinct
-            { label: 'Racha', key: 'maxLevel' } // Reusing maxLevel field for streak if applicable or generic
+            { label: 'Tarjetas', key: 'totalSessions' }, 
+            { label: 'Racha', key: 'maxLevel' } 
         ]
     }
 ];
@@ -101,6 +100,26 @@ export const REWARDS_LIST: Reward[] = [
         description: 'Azul profundo para máxima concentración.',
         cost: 750,
         value: '#0ea5e9',
+        icon: 'palette',
+        requiredAchievementId: 'streak_7' // Requiere logro de constancia
+    },
+    {
+        id: 'theme_crimson',
+        type: 'theme',
+        title: 'Furia Escarlata',
+        description: 'Rojo vibrante para sesiones de alta energía.',
+        cost: 1000,
+        value: '#ef4444',
+        icon: 'palette',
+        requiredAchievementId: 'speed_demon' // Requiere ser rápido
+    },
+    {
+        id: 'theme_emerald',
+        type: 'theme',
+        title: 'Bosque Esmeralda',
+        description: 'Verde bosque para calma profunda.',
+        cost: 800,
+        value: '#10b981',
         icon: 'palette'
     },
     // AVATARS
@@ -120,7 +139,8 @@ export const REWARDS_LIST: Reward[] = [
         description: 'Para los maestros de la memoria.',
         cost: 1200,
         value: 'https://api.dicebear.com/7.x/notionists/svg?seed=Wizard',
-        icon: 'face'
+        icon: 'face',
+        requiredAchievementId: 'focus_master'
     },
     {
         id: 'avatar_ninja',
@@ -129,7 +149,18 @@ export const REWARDS_LIST: Reward[] = [
         description: 'Sigiloso y veloz.',
         cost: 1000,
         value: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ninja&clothing=graphicShirt',
-        icon: 'face'
+        icon: 'face',
+        requiredAchievementId: 'streak_7'
+    },
+    {
+        id: 'avatar_god',
+        type: 'avatar',
+        title: 'Deidad Cognitiva',
+        description: 'El avatar definitivo.',
+        cost: 5000,
+        value: 'https://api.dicebear.com/7.x/bottts/svg?seed=GoldenGod&backgroundColor=f59e0b',
+        icon: 'face',
+        requiredAchievementId: 'gold_brain'
     },
     // BOOKS/CONTENT
     {
@@ -150,6 +181,16 @@ export const REWARDS_LIST: Reward[] = [
         value: 'book_id_sherlock',
         icon: 'local_library'
     }
+];
+
+export const ACHIEVEMENTS_LIST: Achievement[] = [
+    { id: 'first_step', title: 'Primer Paso', description: 'Completa tu primera sesión de lectura.', icon: 'footprint' },
+    { id: 'speed_demon', title: 'Demonio Veloz', description: 'Lee a más de 500 WPM.', icon: 'speed' },
+    { id: 'focus_master', title: 'Maestro del Foco', description: 'Completa una Tabla Schulte Nivel 5.', icon: 'visibility' },
+    { id: 'streak_3', title: 'Compromiso Inicial', description: 'Mantén una racha de 3 días.', icon: 'local_fire_department' },
+    { id: 'streak_7', title: 'Constancia Pura', description: 'Mantén una racha de 7 días.', icon: 'local_fire_department' },
+    { id: 'gold_brain', title: 'Cerebro de Oro', description: 'Acumula más de 5000 XP.', icon: 'workspace_premium' },
+    { id: 'span_god', title: 'Memoria Infinita', description: 'Alcanza un Word Span de Nivel 10.', icon: 'pin' },
 ];
 
 export const PRESET_FLASHCARD_SETS: { id: string, title: string, cards: Partial<Flashcard>[] }[] = [
@@ -297,12 +338,6 @@ export const MOCK_QUIZ_QUESTION: QuizQuestion = {
         { id: "c", text: "Releer cada párrafo dos veces.", isCorrect: false }
     ]
 };
-
-export const ACHIEVEMENTS_LIST: Achievement[] = [
-    { id: 'first_step', title: 'Primer Paso', description: 'Completa tu primera sesión de lectura.', icon: 'footprint' },
-    { id: 'speed_demon', title: 'Demonio Veloz', description: 'Lee a más de 500 WPM.', icon: 'speed' },
-    { id: 'focus_master', title: 'Maestro del Foco', description: 'Completa una Tabla Schulte 5x5 en menos de 30s.', icon: 'visibility' },
-];
 
 export const MOCK_USER_STATS = {
   streak: 12,

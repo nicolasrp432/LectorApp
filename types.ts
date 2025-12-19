@@ -46,6 +46,7 @@ export interface Reward {
   cost: number;
   value: string;
   icon: string;
+  requiredAchievementId?: string; // Nuevo: Bloqueo por logros
 }
 
 export interface User {
@@ -115,11 +116,18 @@ export interface Flashcard {
   bookId?: string;
   front: string; 
   back: string;  
-  interval: number; 
-  repetition: number; 
-  efactor: number; 
-  dueDate: number; 
+  interval: number; // Intervalo en días
+  repetition: number; // Veces repasada con éxito
+  efactor: number; // Factor de facilidad (1.3 - 2.5+)
+  dueDate: number; // Próxima revisión (Timestamp)
+  lastReviewed?: number; // Última revisión (Timestamp)
+  masteryLevel?: number; // 0-5
   conceptId?: string;
+}
+
+export interface ChatMessage {
+    role: 'user' | 'model';
+    text: string;
 }
 
 export interface QuizOption {

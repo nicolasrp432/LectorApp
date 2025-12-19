@@ -2,6 +2,24 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Flashcard, ReadingLog, UserStats, ImageSize, QuizQuestion } from "../types";
 
+// --- COACH IA: Chat con Gemini 3 Pro ---
+export const startCoachChat = (history: {role: 'user' | 'model', parts: {text: string}[]}[]) => {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    return ai.chats.create({
+        model: 'gemini-3-pro-preview',
+        config: {
+            systemInstruction: `Eres el "Lector Coach", un experto en neurociencia cognitiva, lectura rápida y técnicas de supermemoria. 
+            Tu misión es ayudar al usuario a mejorar su Tasa de Eficiencia Lectora (TEL) y su retención.
+            REGLAS:
+            1. No generes planes de entrenamiento automáticos con listas de días.
+            2. Da consejos prácticos: cómo evitar la subvocalización, cómo usar el palacio de la memoria, cómo mejorar el enfoque.
+            3. Sé un mentor cercano, motivador y directo.
+            4. Responde de forma concisa pero útil.
+            5. Si te preguntan sobre su progreso, anímalos a revisar su Dashboard.`,
+        },
+    });
+};
+
 // --- MEMORIA: Generador de Escenas Bizarras ---
 export const generateBizarreStory = async (concept: string, location: string, method: string, context?: string): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -131,66 +149,50 @@ export const analyzeImageToText = async (base64Image: string): Promise<string> =
   }
 };
 
-// --- THINKING MODE: Plan de Entrenamiento ---
-export const generatePersonalizedPlan = async (userStats: UserStats, logs: ReadingLog[]): Promise<string> => {
+// --- FLASHCARDS: Generación con Gemini ---
+export const generateFlashcardsFromText = async (userId: string, sourceText: string, isTopic: boolean = false): Promise<Flashcard[]> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
-    const context = `Estadísticas: TEL ${userStats.tel}, Racha ${userStats.streak}, XP ${userStats.xp}.`;
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: `Analiza profundamente el rendimiento de este lector y crea un plan de 3 pasos específico para mejorar su TEL. ${context}`,
-      config: { thinkingConfig: { thinkingBudget: 32768 } }
-    });
-    return response.text || "No se pudo generar el plan.";
-  } catch (error) {
-    return "Error generando plan inteligente.";
-  }
-};
+    const prompt = isTopic 
+      ? `Genera 5 flashcards educativas sobre el tema: "${sourceText}". Cada flashcard debe tener un frente (pregunta/concepto) y un dorso (respuesta/explicación). Devuelve solo el JSON.`
+      : `Extrae 5 conceptos clave del siguiente texto y conviértelos en flashcards (pregunta en frente, respuesta en dorso): "${sourceText.substring(0, 4000)}". Devuelve solo el JSON.`;
 
-// --- FAST AI: Asistente de Lectura ---
-export const getQuickDefinition = async (textChunk: string): Promise<string> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: `Define brevemente o resume el siguiente texto en una frase corta: "${textChunk}"`
-        });
-        return response.text || "Sin respuesta.";
-    } catch (error) {
-        return "Error de conexión.";
-    }
-};
-
-export const generateFlashcardsFromText = async (bookId: string, textContext: string): Promise<Flashcard[]> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Extrae 3 conceptos clave del texto: "${textContext.substring(0, 5000)}". Devuelve JSON.`,
+      contents: prompt,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
           items: {
             type: Type.OBJECT,
-            properties: { front: { type: Type.STRING }, back: { type: Type.STRING } },
+            properties: {
+              front: { type: Type.STRING },
+              back: { type: Type.STRING }
+            },
             required: ["front", "back"]
           }
         }
       }
     });
-    const generatedData = response.text ? JSON.parse(response.text) : [];
-    return generatedData.map((item: any, index: number) => ({
-      id: `${bookId}-${Date.now()}-${index}`,
-      bookId, front: item.front, back: item.back, interval: 0, repetition: 0, efactor: 2.5, dueDate: Date.now(),
+
+    const data = JSON.parse(response.text || '[]');
+    return data.map((item: any, index: number) => ({
+      id: `ai-${Date.now()}-${index}`,
+      userId,
+      front: item.front,
+      back: item.back,
+      interval: 0,
+      repetition: 0,
+      efactor: 2.5,
+      dueDate: Date.now()
     }));
   } catch (error) {
+    console.error("AI Flashcard Error:", error);
     return [];
   }
 };
 
-// --- EDIT IMAGE: Editor con gemini-2.5-flash-image ---
-// Fixed: Export editImage to resolve the error in ImageEditor.tsx
 export const editImage = async (base64Image: string, prompt: string): Promise<string | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
@@ -202,15 +204,8 @@ export const editImage = async (base64Image: string, prompt: string): Promise<st
       model: 'gemini-2.5-flash-image',
       contents: {
         parts: [
-          {
-            inlineData: {
-              data: base64Data,
-              mimeType: mimeType,
-            },
-          },
-          {
-            text: prompt,
-          },
+          { inlineData: { data: base64Data, mimeType: mimeType } },
+          { text: prompt },
         ],
       },
     });

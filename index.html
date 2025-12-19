@@ -4,9 +4,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="description" content="Lector: Aplicación científica de lectura rápida y entrenamiento de memoria." />
+    <meta name="description" content="Lector - Inteligencia Artificial aplicada a la lectura rápida y supermemoria." />
     <meta name="theme-color" content="#112116" />
-    <title>Lector - Entrenamiento Cognitivo</title>
+    <title>Lector - Coach de Aprendizaje</title>
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -14,7 +14,6 @@
       href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <!-- Material Symbols: Se usa display=block para evitar el destello de texto plano (FOIT) -->
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
@@ -26,8 +25,8 @@
         theme: {
           extend: {
             colors: {
-              primary: "#19e65e",
-              "primary-dark": "#14b84b",
+              primary: "var(--primary, #19e65e)",
+              "primary-dark": "var(--primary-dark, #14b84b)",
               "background-light": "#f6f8f6",
               "background-dark": "#112116",
               "surface-light": "#ffffff",
@@ -51,6 +50,10 @@
       };
     </script>
     <style>
+      :root {
+        --primary: #19e65e;
+        --primary-dark: #14b84b;
+      }
       body {
         min-height: 100vh;
         background-color: #112116;
@@ -62,7 +65,6 @@
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
       }
-      /* Estilos críticos para asegurar que los iconos se rendericen como glifos y no como texto plano */
       .material-symbols-outlined {
         font-family: 'Material Symbols Outlined';
         font-weight: normal;
@@ -77,7 +79,6 @@
         direction: ltr;
         -webkit-font-feature-settings: 'liga';
         -webkit-font-smoothing: antialiased;
-        /* Configuración de ejes variables para Material Symbols */
         font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
       }
     </style>
@@ -89,21 +90,20 @@
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "recharts": "https://esm.sh/recharts@^3.6.0",
     "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.88.0",
     "express": "https://esm.sh/express@^5.2.1",
     "path": "https://esm.sh/path@^0.12.7",
-    "fs": "https://esm.sh/fs@^0.0.1-security",
     "url": "https://esm.sh/url@^0.11.4",
+    "pdfjs-dist": "https://esm.sh/pdfjs-dist@^5.4.449",
     "vite": "https://esm.sh/vite@^7.3.0",
     "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
-    "pdfjs-dist": "https://esm.sh/pdfjs-dist@^5.4.449",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.88.0"
+    "fs": "https://esm.sh/fs@^0.0.1-security"
   }
 }
 </script>
 </head>
   <body class="bg-background-light dark:bg-background-dark font-display antialiased text-slate-900 dark:text-white transition-colors duration-200 selection:bg-primary selection:text-black">
     <div id="root"></div>
-    <!-- Se elimina el importmap ya que Vite maneja las dependencias mediante el empaquetado (bundling) estándar -->
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>

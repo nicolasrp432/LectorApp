@@ -31,26 +31,31 @@ import AchievementModal from './components/AchievementModal';
 
 const MainLayout: React.FC = () => {
   const { user, loading, notifications, setNotifications, books, flashcards, updateFlashcard, logReading, updateUser, logout } = useAuth();
-  const { showToast } = useToast();
   const [currentRoute, setCurrentRoute] = useState<AppRoute>(AppRoute.WELCOME);
   const [currentBookId, setCurrentBookId] = useState<string>('');
   const [assessmentData, setAssessmentData] = useState({wpm: 0, comprehension: 0});
   const [newAchievement, setNewAchievement] = useState<Achievement | null>(null);
 
-  // Simple Router (Navigate)
+  // Aplicar tema dinámico globalmente
+  useEffect(() => {
+    if (user?.preferences?.themeColor) {
+        document.documentElement.style.setProperty('--primary', user.preferences.themeColor);
+    } else {
+        document.documentElement.style.setProperty('--primary', '#19e65e');
+    }
+  }, [user?.preferences?.themeColor]);
+
   const navigate = (route: AppRoute) => {
       setCurrentRoute(route);
       window.scrollTo(0,0);
   };
 
-  // Redirect if logged in on init
   useEffect(() => {
       if (!loading && user && (currentRoute === AppRoute.WELCOME || currentRoute === AppRoute.LOGIN)) {
           navigate(AppRoute.DASHBOARD);
       }
   }, [user, loading]);
 
-  // Redirect to Welcome on Logout
   useEffect(() => {
       if (!loading && !user && currentRoute !== AppRoute.LOGIN && currentRoute !== AppRoute.REGISTER && currentRoute !== AppRoute.WELCOME) {
           navigate(AppRoute.WELCOME);
@@ -60,12 +65,11 @@ const MainLayout: React.FC = () => {
   if (loading) {
       return (
         <div className="flex h-screen w-full items-center justify-center bg-[#112116]">
-             <div className="size-16 rounded-full border-4 border-[#19e65e] border-t-transparent animate-spin"></div>
+             <div className="size-16 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
         </div>
       );
   }
 
-  // Se asegura que ReadingSession (AppRoute.READING) mantenga el BottomNav visible
   const showBottomNav = user && [
       AppRoute.DASHBOARD, AppRoute.LIBRARY, AppRoute.SCHULTE, 
       AppRoute.WORD_SPAN, AppRoute.MEMORY_TRAINING, AppRoute.LOCI_TRAINING, 
@@ -78,13 +82,11 @@ const MainLayout: React.FC = () => {
       case AppRoute.LOGIN: return <Login onLogin={() => {}} onNavigate={navigate} />;
       case AppRoute.REGISTER: return <Register onRegister={() => {}} onNavigate={navigate} />;
       
-      // Assessment Flow
       case AppRoute.ASSESSMENT_INTRO: return <AssessmentIntro onNavigate={navigate} onBack={() => navigate(AppRoute.WELCOME)} />;
       case AppRoute.ASSESSMENT_READING: return <AssessmentReading onFinishReading={(wpm) => { setAssessmentData(p => ({...p, wpm})); navigate(AppRoute.ASSESSMENT_QUIZ); }} onBack={() => navigate(AppRoute.ASSESSMENT_INTRO)} />;
       case AppRoute.ASSESSMENT_QUIZ: return <AssessmentQuiz onFinishQuiz={(s) => { setAssessmentData(p => ({...p, comprehension: s})); navigate(AppRoute.ASSESSMENT_RESULTS); }} />;
       case AppRoute.ASSESSMENT_RESULTS: return <AssessmentResults wpm={assessmentData.wpm} comprehension={assessmentData.comprehension} onContinue={() => navigate(AppRoute.REGISTER)} />;
       
-      // Main App
       case AppRoute.DASHBOARD: return user ? <> <Header user={user} notifications={notifications} onClearNotifications={() => setNotifications([])} /> <Dashboard onNavigate={navigate} /> </> : <Login onLogin={() => {}} onNavigate={navigate} />;
       case AppRoute.TRAININGS: return <TrainingsList onNavigate={navigate} onBack={() => navigate(AppRoute.DASHBOARD)} />;
       case AppRoute.LIBRARY: return <Library onNavigate={navigate} onSelectBook={(id) => { setCurrentBookId(id); navigate(AppRoute.READING); }} />;
@@ -100,7 +102,6 @@ const MainLayout: React.FC = () => {
           />
         );
       
-      // Exercises
       case AppRoute.SCHULTE: return <SchulteTable onBack={() => navigate(AppRoute.DASHBOARD)} />;
       case AppRoute.WORD_SPAN: return (
         <WordSpan 
@@ -111,13 +112,10 @@ const MainLayout: React.FC = () => {
       case AppRoute.MEMORY_TRAINING: return (
         <MemoryTraining 
           onNavigate={navigate} 
-          flashcards={flashcards}
-          onUpdateCard={updateFlashcard}
         />
       );
       case AppRoute.LOCI_TRAINING: return <LociTraining onBack={() => navigate(AppRoute.DASHBOARD)} />;
       
-      // Misc
       case AppRoute.SETTINGS: return user ? (
         <Settings 
           onBack={() => navigate(AppRoute.DASHBOARD)} 
