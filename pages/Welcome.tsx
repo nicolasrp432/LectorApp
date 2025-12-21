@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React from 'react';
 import { AppRoute } from '../types';
 
 interface WelcomeProps {
@@ -55,17 +56,24 @@ const Welcome: React.FC<WelcomeProps> = ({ onNavigate }) => {
       </main>
 
       {/* Footer / CTA Section */}
-      <footer className="w-full px-6 pb-12 pt-4 relative z-10 mt-auto">
+      <footer className="w-full px-6 pb-12 pt-4 relative z-10 mt-auto flex flex-col gap-4">
+        {/* BOTÓN PRINCIPAL: INICIAR SESIÓN (GREEN BUTTON) */}
         <button
             onClick={() => onNavigate(AppRoute.LOGIN)}
-            className="group relative flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl h-14 bg-primary text-[#112217] text-lg font-bold leading-normal tracking-[0.015em] transition-transform active:scale-[0.98] shadow-[0_0_20px_rgba(25,230,94,0.3)] hover:shadow-[0_0_30px_rgba(25,230,94,0.5)]"
+            className="group relative flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl h-16 bg-primary text-[#112217] text-lg font-extrabold leading-normal tracking-[0.015em] transition-transform active:scale-[0.98] shadow-[0_0_25px_rgba(25,230,94,0.4)] hover:shadow-[0_0_35px_rgba(25,230,94,0.6)]"
         >
-          <span className="mr-2">Iniciar Sesión</span>
-          <span className="material-symbols-outlined text-[20px] transition-transform group-hover:translate-x-1">login</span>
+          <span>Iniciar Sesión</span>
+          <span className="material-symbols-outlined ml-2 text-[24px] transition-transform group-hover:translate-x-1">login</span>
         </button>
-        <div className="mt-6 text-center">
-          <button onClick={() => onNavigate(AppRoute.ASSESSMENT_INTRO)} className="text-slate-500 dark:text-[#93c8a5] text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors">
-            ¿Nuevo aquí? <span className="underline decoration-1 underline-offset-4">Toma el Test Inicial</span>
+        
+        {/* LINK SECUNDARIO: TEST INICIAL PARA NUEVOS */}
+        <div className="text-center">
+          <button 
+            onClick={() => onNavigate(AppRoute.ASSESSMENT_INTRO)} 
+            className="text-slate-500 dark:text-[#93c8a5] text-sm font-medium leading-normal hover:text-primary transition-colors flex flex-col items-center gap-1 mx-auto"
+          >
+            <p>¿Nuevo aquí?</p>
+            <span className="font-bold underline decoration-1 underline-offset-4 text-primary">Toma el test para iniciar</span>
           </button>
         </div>
       </footer>

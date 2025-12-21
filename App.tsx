@@ -36,7 +36,6 @@ const MainLayout: React.FC = () => {
   const [assessmentData, setAssessmentData] = useState({wpm: 0, comprehension: 0});
   const [newAchievement, setNewAchievement] = useState<Achievement | null>(null);
 
-  // Aplicar tema dinámico globalmente
   useEffect(() => {
     if (user?.preferences?.themeColor) {
         document.documentElement.style.setProperty('--primary', user.preferences.themeColor);
@@ -51,13 +50,13 @@ const MainLayout: React.FC = () => {
   };
 
   useEffect(() => {
-      if (!loading && user && (currentRoute === AppRoute.WELCOME || currentRoute === AppRoute.LOGIN)) {
+      if (!loading && user && (currentRoute === AppRoute.WELCOME || currentRoute === AppRoute.LOGIN || currentRoute === AppRoute.REGISTER)) {
           navigate(AppRoute.DASHBOARD);
       }
   }, [user, loading]);
 
   useEffect(() => {
-      if (!loading && !user && currentRoute !== AppRoute.LOGIN && currentRoute !== AppRoute.REGISTER && currentRoute !== AppRoute.WELCOME) {
+      if (!loading && !user && currentRoute !== AppRoute.LOGIN && currentRoute !== AppRoute.REGISTER && currentRoute !== AppRoute.WELCOME && !currentRoute.startsWith('assessment')) {
           navigate(AppRoute.WELCOME);
       }
   }, [user, loading, currentRoute]);
@@ -85,7 +84,7 @@ const MainLayout: React.FC = () => {
       case AppRoute.ASSESSMENT_INTRO: return <AssessmentIntro onNavigate={navigate} onBack={() => navigate(AppRoute.WELCOME)} />;
       case AppRoute.ASSESSMENT_READING: return <AssessmentReading onFinishReading={(wpm) => { setAssessmentData(p => ({...p, wpm})); navigate(AppRoute.ASSESSMENT_QUIZ); }} onBack={() => navigate(AppRoute.ASSESSMENT_INTRO)} />;
       case AppRoute.ASSESSMENT_QUIZ: return <AssessmentQuiz onFinishQuiz={(s) => { setAssessmentData(p => ({...p, comprehension: s})); navigate(AppRoute.ASSESSMENT_RESULTS); }} />;
-      case AppRoute.ASSESSMENT_RESULTS: return <AssessmentResults wpm={assessmentData.wpm} comprehension={assessmentData.comprehension} onContinue={() => navigate(AppRoute.REGISTER)} />;
+      case AppRoute.ASSESSMENT_RESULTS: return <AssessmentResults wpm={assessmentData.wpm} comprehension={assessmentData.comprehension} onContinue={() => navigate(AppRoute.LOGIN)} />;
       
       case AppRoute.DASHBOARD: return user ? <> <Header user={user} notifications={notifications} onClearNotifications={() => setNotifications([])} /> <Dashboard onNavigate={navigate} /> </> : <Login onLogin={() => {}} onNavigate={navigate} />;
       case AppRoute.TRAININGS: return <TrainingsList onNavigate={navigate} onBack={() => navigate(AppRoute.DASHBOARD)} />;

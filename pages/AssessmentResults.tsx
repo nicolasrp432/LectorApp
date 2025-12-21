@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useEffect } from 'react';
 import { AppRoute } from '../types';
 
 interface AssessmentResultsProps {
@@ -8,10 +9,18 @@ interface AssessmentResultsProps {
 }
 
 const AssessmentResults: React.FC<AssessmentResultsProps> = ({ wpm, comprehension, onContinue }) => {
-  // Calculate TEL
   const tel = Math.round(wpm * (comprehension / 100));
   
-  // Determine Level
+  useEffect(() => {
+      // Guardamos en local storage para que el flujo de registro pueda inyectarlo en el perfil
+      localStorage.setItem('pending_assessment', JSON.stringify({
+          wpm,
+          comprehension,
+          tel,
+          timestamp: Date.now()
+      }));
+  }, [wpm, comprehension, tel]);
+
   let level = "Iniciado";
   if (tel > 150) level = "Lector Promedio";
   if (tel > 250) level = "Lector Ágil";
@@ -19,9 +28,7 @@ const AssessmentResults: React.FC<AssessmentResultsProps> = ({ wpm, comprehensio
 
   return (
     <div className="flex flex-col h-full min-h-screen bg-background-light dark:bg-background-dark p-6 overflow-y-auto no-scrollbar">
-      
       <div className="flex-1 flex flex-col items-center justify-center">
-        {/* Success Icon */}
         <div className="relative mb-8">
             <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse"></div>
             <div className="relative size-24 bg-gradient-to-br from-primary to-green-600 rounded-full flex items-center justify-center shadow-2xl border-4 border-background-dark">
@@ -32,7 +39,6 @@ const AssessmentResults: React.FC<AssessmentResultsProps> = ({ wpm, comprehensio
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white text-center mb-2">¡Análisis Completado!</h1>
         <p className="text-slate-500 dark:text-gray-400 text-center mb-8">Tu perfil cognitivo inicial ha sido generado.</p>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4 w-full max-w-sm mb-8">
             <div className="bg-white dark:bg-white/5 rounded-2xl p-4 border border-gray-200 dark:border-white/10 flex flex-col items-center">
                 <span className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Velocidad</span>
@@ -55,15 +61,15 @@ const AssessmentResults: React.FC<AssessmentResultsProps> = ({ wpm, comprehensio
         </div>
 
         <p className="text-sm text-gray-500 text-center max-w-xs mb-8">
-            Basado en tus resultados, hemos diseñado un plan de entrenamiento personalizado para duplicar tu TEL en 30 días.
+            Para guardar este progreso y empezar tu entrenamiento personalizado, necesitas crear una cuenta o iniciar sesión.
         </p>
 
         <button 
             onClick={onContinue}
             className="w-full max-w-sm h-14 bg-primary text-black font-bold text-lg rounded-xl shadow-[0_0_20px_rgba(25,230,94,0.3)] hover:shadow-[0_0_30px_rgba(25,230,94,0.5)] hover:scale-105 transition-all flex items-center justify-center gap-2"
         >
-            Guardar Progreso y Crear Perfil
-            <span className="material-symbols-outlined">arrow_forward</span>
+            Guardar y Continuar
+            <span className="material-symbols-outlined">login</span>
         </button>
       </div>
     </div>

@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import { AppRoute } from '../types';
 import { supabase } from '../utils/supabase';
 import { useAuth } from '../context/AuthContext';
 
 interface LoginProps {
-  onLogin: () => void; // Used to trigger data refresh in App.tsx
+  onLogin: () => void;
   onNavigate: (route: AppRoute) => void;
 }
 
@@ -27,21 +28,11 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
         });
 
         if (error) throw error;
-        
-        // Success
         onLogin(); 
         onNavigate(AppRoute.DASHBOARD);
-        
     } catch (error: any) {
         console.error("Login error", error);
-        
-        if (error.message.includes('Email not confirmed')) {
-            setErrorMsg('Tu email no ha sido confirmado. Revisa tu correo o usa Google.');
-        } else if (error.message.includes('Invalid login credentials')) {
-            setErrorMsg('Credenciales inválidas. Verifica tu email y contraseña.');
-        } else {
-            setErrorMsg(error.message || 'Error al iniciar sesión');
-        }
+        setErrorMsg(error.message || 'Error al iniciar sesión');
     } finally {
         setIsLoading(false);
     }
@@ -49,18 +40,18 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
 
   const handleGuestLogin = () => {
       loginAsGuest();
-      onLogin(); // Trigger app state refresh if needed
       onNavigate(AppRoute.DASHBOARD);
   };
 
   const handleGoogleLogin = async () => {
     try {
         setErrorMsg('');
+        // Aseguramos que la URL sea absoluta y apunte a la raíz para que el router de la SPA maneje el regreso
+        const redirectTo = window.location.origin.replace(/\/$/, ""); 
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                // Esto redirige al usuario de vuelta a la app después de loguearse en Google
-                redirectTo: window.location.origin 
+                redirectTo: redirectTo 
             }
         });
         if (error) throw error;
@@ -90,29 +81,26 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
             </div>
 
             {errorMsg && (
-                <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm text-center">
+                <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm text-center animate-in fade-in zoom-in-95">
                     {errorMsg}
                 </div>
             )}
 
-            {/* Guest Button */}
-            <button 
-                type="button"
-                onClick={handleGuestLogin}
-                className="w-full bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-600 dark:text-yellow-400 font-bold h-12 rounded-xl flex items-center justify-center gap-2 transition-all mb-4 text-sm uppercase tracking-wide"
-            >
-                <span className="material-symbols-outlined text-[18px]">person_off</span>
-                <span>Ingresar como Invitado</span>
-            </button>
-
-            {/* Google Button */}
             <button 
                 type="button"
                 onClick={handleGoogleLogin}
-                className="w-full bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 text-slate-700 dark:text-white font-bold h-14 rounded-xl flex items-center justify-center gap-3 transition-all mb-6"
+                className="w-full bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 text-slate-700 dark:text-white font-bold h-14 rounded-xl flex items-center justify-center gap-3 transition-all mb-4 shadow-sm active:scale-[0.98]"
             >
                 <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-6 h-6" />
                 <span>Continuar con Google</span>
+            </button>
+
+            <button 
+                type="button"
+                onClick={handleGuestLogin}
+                className="w-full bg-white/5 hover:bg-white/10 border border-white/5 text-gray-500 text-xs font-bold h-10 rounded-xl mb-6 transition-all uppercase tracking-widest"
+            >
+                Entrar como Invitado
             </button>
 
             <div className="relative mb-6">
@@ -173,7 +161,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
 
             <div className="mt-8 text-center">
                 <p className="text-sm text-gray-500">
-                    ¿No tienes cuenta? <span onClick={() => onNavigate(AppRoute.REGISTER)} className="text-primary font-bold cursor-pointer hover:underline">Solicitar Acceso</span>
+                    ¿No tienes cuenta? <span onClick={() => onNavigate(AppRoute.REGISTER)} className="text-primary font-bold cursor-pointer hover:underline">Registrarse</span>
                 </p>
             </div>
         </div>

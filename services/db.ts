@@ -9,25 +9,16 @@ export const dbService = {
             .from('profiles')
             .select('*')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
             
         if (error || !data) return null;
-
-        const stats = {
-            streak: 0,
-            tel: 0,
-            xp: 0,
-            maxSchulteLevel: 1,
-            maxWordSpan: 3,
-            ...data.stats
-        };
 
         return {
             id: data.id,
             name: data.name,
             email: data.email,
             avatarUrl: data.avatar_url,
-            stats: stats,
+            stats: data.stats,
             preferences: data.preferences,
             achievements: data.achievements || [],
             joinedDate: new Date(data.joined_at).getTime(),
@@ -37,6 +28,7 @@ export const dbService = {
     },
 
     async createUserProfile(user: User): Promise<void> {
+        // Usamos upsert para evitar errores si el perfil ya existe
         const { error } = await supabase.from('profiles').upsert({
             id: user.id,
             email: user.email,
@@ -44,13 +36,16 @@ export const dbService = {
             avatar_url: user.avatarUrl,
             stats: user.stats,
             preferences: user.preferences,
-            achievements: user.achievements || []
-        });
+            achievements: user.achievements || [],
+            joined_at: new Date().toISOString()
+        }, { onConflict: 'id' });
 
-        if (error) console.error("Error creating profile:", error.message);
+        if (error) {
+            console.error("Critical error creating profile:", error.message);
+            throw error;
+        }
     },
 
-    // Fix: Added missing method to update user statistics
     async updateUserStats(userId: string, stats: UserStats): Promise<void> {
         const { error } = await supabase.from('profiles').update({
             stats: stats
@@ -58,7 +53,6 @@ export const dbService = {
         if (error) console.error("Error updating stats:", error.message);
     },
 
-    // Fix: Added missing method to update user preferences
     async updateUserPreferences(userId: string, preferences: UserPreferences): Promise<void> {
         const { error } = await supabase.from('profiles').update({
             preferences: preferences
@@ -123,7 +117,6 @@ export const dbService = {
     },
 
     // --- Books ---
-    // Fix: Added missing method to retrieve books for a specific user
     async getUserBooks(userId: string): Promise<Book[]> {
         const { data, error } = await supabase
             .from('user_books')
@@ -187,7 +180,6 @@ export const dbService = {
         }));
     },
 
-    // Fix: Added missing method to log a reading session or exercise
     async addReadingLog(log: ReadingLog): Promise<void> {
         const { error } = await supabase.from('reading_logs').insert({
             user_id: log.userId,
@@ -204,7 +196,6 @@ export const dbService = {
     },
 
     // --- Memory Palaces ---
-    // Fix: Added missing method to retrieve memory palaces for a user
     async getMemoryPalaces(userId: string): Promise<MemoryPalace[]> {
         const { data, error } = await supabase
             .from('memory_palaces')
@@ -225,7 +216,6 @@ export const dbService = {
         }));
     },
 
-    // Fix: Added missing method to save a memory palace to the database
     async addMemoryPalace(palace: MemoryPalace): Promise<void> {
         const { error } = await supabase.from('memory_palaces').insert({
             user_id: palace.userId,
