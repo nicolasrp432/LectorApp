@@ -104,6 +104,7 @@
 </head>
   <body class="bg-background-light dark:bg-background-dark font-display antialiased text-slate-900 dark:text-white transition-colors duration-200 selection:bg-primary selection:text-black">
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+    <!-- Usamos ruta relativa para evitar problemas con ruteo en producción -->
+    <script type="module" src="./index.tsx"></script>
   </body>
 </html>

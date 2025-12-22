@@ -34,21 +34,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   
-  const isInitializing = useRef(false);
+  const isSyncing = useRef(false);
 
   const loadUserData = useCallback(async (userId: string, email: string, metadata?: any) => {
-    if (isInitializing.current && user?.id === userId) return;
-    isInitializing.current = true;
+    // Evitar múltiples cargas simultáneas del mismo usuario
+    if (isSyncing.current && user?.id === userId) return;
+    isSyncing.current = true;
     
     try {
       setLoading(true);
-      console.log(`[AuthSystem] Sincronizando datos para: ${email}`);
+      console.log(`[AuthSystem] Iniciando sincronización profunda: ${email}`);
       
       let profile = await dbService.getUserProfile(userId);
       
-      // Si el perfil no existe en la tabla pública 'profiles', lo creamos ahora
       if (!profile) {
-        console.log("[AuthSystem] Perfil no encontrado en DB, creando registro inicial...");
+        console.log("[AuthSystem] Perfil no encontrado, ejecutando provisionamiento automático...");
         
         const savedAssessment = localStorage.getItem('pending_assessment');
         const assessmentData = savedAssessment ? JSON.parse(savedAssessment) : null;
@@ -125,42 +125,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(profile);
       }
     } catch (err) {
-      console.error("[AuthSystem] Error crítico al cargar datos de usuario:", err);
+      console.error("[AuthSystem] Error en la carga de perfil:", err);
     } finally {
+      isSyncing.current = false;
       setLoading(false);
-      isInitializing.current = false;
     }
   }, [user?.id]);
 
   useEffect(() => {
-    // 1. Verificar sesión inicial
-    const checkInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        await loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
-      } else {
-        setLoading(false);
-      }
-    };
-
-    checkInitialSession();
-
-    // 2. Escuchar cambios de estado (OAuth Redirects aterrizan aquí)
+    // Escuchar cambios de estado
+    // onAuthStateChange maneja tanto la sesión inicial como los cambios (incluidos redirects OAuth)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`[SupabaseAuth] Evento: ${event}`);
+      console.log(`[SupabaseAuth] Evento detectado: ${event}`);
       
       if (session?.user) {
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          await loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
-        }
+        // En cualquier evento con sesión válida, aseguramos que los datos se carguen antes de quitar loading
+        await loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
       } else {
-        if (event === 'SIGNED_OUT') {
+        // Solo si NO hay sesión y NO estamos en medio de un flujo de autenticación, liberamos el loading
+        if (!window.location.hash.includes('access_token')) {
           setUser(null);
           setBooks(SUGGESTED_BOOKS);
           setReadingLogs([]);
           setFlashcards([]);
+          setLoading(false);
         }
-        setLoading(false);
       }
     });
 

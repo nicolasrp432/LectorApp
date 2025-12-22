@@ -18,11 +18,20 @@ if (fs.existsSync(DIST_PATH)) {
     console.warn("ADVERTENCIA: Directorio 'dist' no encontrado. Asegúrate de ejecutar 'npm run build' primero.");
 }
 
+// Servir archivos estáticos primero (prioridad alta)
 app.use(express.static(DIST_PATH));
 
 app.get('/health', (req, res) => res.status(200).send('OK'));
 
+// Solo aplicar el fallback de index.html para rutas que NO parecen ser archivos
+// Esto evita que las peticiones a archivos inexistentes devuelvan el HTML
 app.get('*', (req, res) => {
+  // Si la ruta contiene un punto, probablemente sea un archivo (JS, CSS, IMG, etc.)
+  // Si no existe, devolvemos 404 real en lugar de index.html
+  if (req.path.includes('.')) {
+      return res.status(404).send('Archivo no encontrado');
+  }
+
   const indexPath = path.join(DIST_PATH, 'index.html');
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
