@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { AppRoute, User, UserPreferences } from '../types';
 import { SettingsRow } from '../components/SettingsRow';
@@ -81,6 +82,20 @@ const Settings: React.FC<SettingsProps> = ({ onBack, user, onLogout, onNavigate,
         </div>
       </div>
 
+      {/* Perfil Lector Section */}
+      <div className="mb-6">
+        <h3 className="text-slate-500 dark:text-gray-400 text-xs font-bold tracking-wider px-6 pb-2 uppercase">Perfil Lector</h3>
+        <div className="mx-4 bg-surface-light dark:bg-surface-dark rounded-2xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800">
+          <SettingsRow 
+            icon="analytics" 
+            iconColorClass="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+            label="Recalibrar Perfil Lector"
+            value={user.level}
+            onClick={() => onNavigate(AppRoute.ASSESSMENT_INTRO)}
+          />
+        </div>
+      </div>
+
       {/* Training Preferences Section */}
       <div className="mb-6">
         <h3 className="text-slate-500 dark:text-gray-400 text-xs font-bold tracking-wider px-6 pb-2 uppercase">Preferencias de Entrenamiento</h3>
@@ -129,24 +144,6 @@ const Settings: React.FC<SettingsProps> = ({ onBack, user, onLogout, onNavigate,
             isToggle={true}
             isToggled={user.preferences.soundEnabled}
             onToggle={() => handleToggle('soundEnabled')}
-            hasBorder={false}
-          />
-        </div>
-      </div>
-
-      {/* Support Section */}
-      <div className="mb-8">
-        <h3 className="text-slate-500 dark:text-gray-400 text-xs font-bold tracking-wider px-6 pb-2 uppercase">Soporte</h3>
-        <div className="mx-4 bg-surface-light dark:bg-surface-dark rounded-2xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800">
-          <SettingsRow 
-            icon="help" 
-            iconColorClass="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
-            label="Centro de Ayuda"
-          />
-          <SettingsRow 
-            icon="policy" 
-            iconColorClass="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
-            label="Política de Privacidad"
             hasBorder={false}
           />
         </div>

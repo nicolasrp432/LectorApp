@@ -81,10 +81,10 @@ const MainLayout: React.FC = () => {
       case AppRoute.LOGIN: return <Login onLogin={() => {}} onNavigate={navigate} />;
       case AppRoute.REGISTER: return <Register onRegister={() => {}} onNavigate={navigate} />;
       
-      case AppRoute.ASSESSMENT_INTRO: return <AssessmentIntro onNavigate={navigate} onBack={() => navigate(AppRoute.WELCOME)} />;
+      case AppRoute.ASSESSMENT_INTRO: return <AssessmentIntro onNavigate={navigate} onBack={() => user ? navigate(AppRoute.SETTINGS) : navigate(AppRoute.WELCOME)} />;
       case AppRoute.ASSESSMENT_READING: return <AssessmentReading onFinishReading={(wpm) => { setAssessmentData(p => ({...p, wpm})); navigate(AppRoute.ASSESSMENT_QUIZ); }} onBack={() => navigate(AppRoute.ASSESSMENT_INTRO)} />;
       case AppRoute.ASSESSMENT_QUIZ: return <AssessmentQuiz onFinishQuiz={(s) => { setAssessmentData(p => ({...p, comprehension: s})); navigate(AppRoute.ASSESSMENT_RESULTS); }} />;
-      case AppRoute.ASSESSMENT_RESULTS: return <AssessmentResults wpm={assessmentData.wpm} comprehension={assessmentData.comprehension} onContinue={() => navigate(AppRoute.LOGIN)} />;
+      case AppRoute.ASSESSMENT_RESULTS: return <AssessmentResults wpm={assessmentData.wpm} comprehension={assessmentData.comprehension} onContinue={() => user ? navigate(AppRoute.DASHBOARD) : navigate(AppRoute.LOGIN)} />;
       
       case AppRoute.DASHBOARD: return user ? <> <Header user={user} notifications={notifications} onClearNotifications={() => setNotifications([])} /> <Dashboard onNavigate={navigate} /> </> : <Login onLogin={() => {}} onNavigate={navigate} />;
       case AppRoute.TRAININGS: return <TrainingsList onNavigate={navigate} onBack={() => navigate(AppRoute.DASHBOARD)} />;
