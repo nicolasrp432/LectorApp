@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { AppRoute } from '../types';
 import { supabase } from '../utils/supabase';
@@ -65,6 +66,33 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    try {
+        setIsLoading(true);
+        setErrorMsg('');
+        
+        const redirectTo = window.location.origin;
+        console.log(`[Auth] Iniciando registro con Google OAuth. Redirect a: ${redirectTo}`);
+
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: redirectTo,
+                queryParams: {
+                    access_type: 'offline',
+                    prompt: 'consent',
+                },
+            }
+        });
+        
+        if (error) throw error;
+    } catch (error: any) {
+        console.error("Google Registration Error:", error);
+        setErrorMsg("Error al conectar con Google.");
+        setIsLoading(false);
+    }
+  };
+
   if (showSuccess) {
       return (
         <div className="flex flex-col h-screen w-full bg-background-light dark:bg-background-dark items-center justify-center p-8 text-center animate-in fade-in">
@@ -89,6 +117,8 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
 
   return (
     <div className="flex flex-col h-screen w-full bg-background-light dark:bg-background-dark overflow-hidden relative">
+        <div className="absolute top-[-20%] left-[-20%] w-[70%] h-[50%] bg-primary/10 rounded-full blur-[100px] pointer-events-none"></div>
+
         <div className="absolute top-6 left-6 z-20">
             <button onClick={() => onNavigate(AppRoute.WELCOME)} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-slate-900 dark:text-white">
                 <span className="material-symbols-outlined">arrow_back</span>
@@ -96,18 +126,41 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
         </div>
 
         <div className="flex-1 flex flex-col justify-center px-8 z-10 max-w-md mx-auto w-full">
-            <div className="mb-8">
+            <div className="mb-6 text-center">
                 <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Crear Cuenta</h1>
                 <p className="text-slate-500 dark:text-gray-400">Guarda tus resultados y comienza tu entrenamiento.</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-                {errorMsg && (
-                    <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm text-center">
-                        {errorMsg}
-                    </div>
+            {errorMsg && (
+                <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm text-center animate-in fade-in zoom-in-95">
+                    {errorMsg}
+                </div>
+            )}
+
+            <button 
+                type="button"
+                disabled={isLoading}
+                onClick={handleGoogleLogin}
+                className="w-full bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 text-slate-700 dark:text-white font-bold h-14 rounded-xl flex items-center justify-center gap-3 transition-all mb-6 shadow-sm active:scale-[0.98] disabled:opacity-50"
+            >
+                {isLoading && !email && !name ? (
+                    <span className="size-5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+                ) : (
+                    <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-6 h-6" />
                 )}
-                
+                <span>Registrarse con Google</span>
+            </button>
+
+            <div className="relative mb-6">
+                <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-200 dark:border-white/10"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-background-light dark:bg-background-dark text-gray-500">O usa tu email</span>
+                </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-500 ml-1">Nombre</label>
                     <input 
@@ -148,7 +201,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
                     disabled={isLoading}
                     className="w-full bg-primary hover:bg-primary-dark active:scale-[0.98] transition-all text-background-dark font-bold text-lg h-14 rounded-xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(25,230,94,0.3)] mt-6"
                 >
-                    {isLoading ? (
+                    {isLoading && (email || name) ? (
                         <span className="size-5 border-2 border-background-dark border-t-transparent rounded-full animate-spin"></span>
                     ) : (
                         "Registrarse"

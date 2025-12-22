@@ -32,6 +32,7 @@ export const dbService = {
     },
 
     async createUserProfile(user: User): Promise<void> {
+        // Usamos upsert para manejar casos donde el usuario ya pudiera existir parcialmente
         const { error } = await supabase.from('profiles').upsert({
             id: user.id,
             email: user.email,
@@ -91,6 +92,7 @@ export const dbService = {
             repetition: c.repetition,
             efactor: c.efactor,
             due_date: c.dueDate,
+            // Corrected: Use camelCase masteryLevel from Flashcard type
             mastery_level: c.masteryLevel || 0
         }));
         await supabase.from('flashcards').insert(dbCards);
@@ -102,6 +104,7 @@ export const dbService = {
             repetition: card.repetition,
             efactor: card.efactor,
             due_date: card.dueDate,
+            // Corrected: Use camelCase properties lastReviewed and masteryLevel from Flashcard type
             last_reviewed: card.lastReviewed,
             mastery_level: card.masteryLevel
         }).eq('id', card.id);
@@ -119,10 +122,10 @@ export const dbService = {
             userId: row.user_id,
             title: row.title,
             author: row.author,
-            coverUrl: row.cover_url,
+            cover_url: row.cover_url,
             content: row.content,
             progress: row.progress,
-            isAnalyzed: row.is_analyzed,
+            is_analyzed: row.is_analyzed,
             category: 'user'
         }));
     },

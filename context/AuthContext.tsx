@@ -37,27 +37,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const initializingRef = useRef(false);
 
   const loadUserData = async (userId: string, email: string, metadata?: any) => {
+    // Evitar múltiples ejecuciones simultáneas para el mismo usuario
     if (initializingRef.current) return;
     initializingRef.current = true;
     
-    console.log(`[Auth] Cargando datos para: ${email}`);
+    console.log(`[AuthSystem] Sincronizando usuario interno: ${email}`);
     
     try {
       setLoading(true);
+      
+      // 1. Intentar recuperar el perfil existente
       let profile = await dbService.getUserProfile(userId);
       
-      const savedAssessment = localStorage.getItem('pending_assessment');
-      const assessmentData = savedAssessment ? JSON.parse(savedAssessment) : null;
-
-      const calculateLevel = (tel: number) => {
-        if (tel > 400) return "Maestro Cognitivo";
-        if (tel > 250) return "Lector Ágil";
-        if (tel > 150) return "Lector Promedio";
-        return "Iniciado";
-      };
-
+      // 2. Si no existe, es un nuevo registro (posiblemente vía Google)
       if (!profile) {
-        console.log("[Auth] Perfil no encontrado. Creando nuevo perfil...");
+        console.log("[AuthSystem] Usuario nuevo detectado. Creando perfil interno...");
+        
+        // Recuperar datos del test inicial si existen
+        const savedAssessment = localStorage.getItem('pending_assessment');
+        const assessmentData = savedAssessment ? JSON.parse(savedAssessment) : null;
+
+        const calculateLevel = (tel: number) => {
+          if (tel > 400) return "Maestro Cognitivo";
+          if (tel > 250) return "Lector Ágil";
+          if (tel > 150) return "Lector Promedio";
+          return "Iniciado";
+        };
+
         const initialStats: UserStats = { 
           streak: 1, 
           tel: assessmentData?.tel || 200, 
@@ -67,6 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           maxWordSpan: 3 
         };
 
+        // Extraer nombre del metadata de Google o el email
         const displayName = metadata?.full_name || metadata?.display_name || email.split('@')[0];
 
         const newUser: User = {
@@ -92,8 +99,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await dbService.createUserProfile(newUser);
         profile = newUser;
         
+        // Si había un test, registrarlo en el historial inmediatamente
         if (assessmentData) {
-            console.log("[Auth] Vinculando resultados del test previo...");
             await dbService.addReadingLog({
                 id: `init-${Date.now()}`,
                 userId: userId,
@@ -107,25 +114,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
             localStorage.removeItem('pending_assessment');
         }
-        console.log("[Auth] Perfil creado con éxito.");
-      } else {
-        console.log("[Auth] Perfil existente recuperado.");
       }
 
+      // 3. Cargar datos relacionados (Libros, Logs, Tarjetas)
       if (profile) {
-        setUser(profile);
         const [fetchedLogs, fetchedBooks, fetchedCards] = await Promise.all([
           dbService.getReadingLogs(userId),
           dbService.getUserBooks(userId),
           dbService.getFlashcards(userId)
         ]);
+        
         setReadingLogs(fetchedLogs);
         setBooks(fetchedBooks.length > 0 ? fetchedBooks : SUGGESTED_BOOKS);
         setFlashcards(fetchedCards);
         setNotifications(MOCK_NOTIFICATIONS);
+        setUser(profile);
+        console.log("[AuthSystem] Sesión establecida correctamente.");
       }
     } catch (err) {
-      console.error("[Auth] Error critico en AuthContext:", err);
+      console.error("[AuthSystem] Error en la carga de usuario:", err);
     } finally {
       setLoading(false);
       initializingRef.current = false;
@@ -133,24 +140,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    const initSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        await loadUserData(session.user.id, session.user.email || '', session.user.user_metadata);
-      } else {
-        setLoading(false);
-      }
-    };
-
-    initSession();
-
+    // Escuchar cambios de sesión de forma proactiva
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`[Auth] Evento: ${event}`);
-      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
-        await loadUserData(session.user.id, session.user.email || '', session.user.user_metadata);
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setLoading(false);
+      console.log(`[AuthEvent] ${event}`);
+      
+      if (session?.user) {
+        await loadUserData(
+          session.user.id, 
+          session.user.email || '', 
+          session.user.user_metadata
+        );
+      } else {
+        // Solo resetear si realmente se cerró la sesión
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setBooks(SUGGESTED_BOOKS);
+          setReadingLogs([]);
+          setFlashcards([]);
+          setLoading(false);
+        } else if (event === 'INITIAL_SESSION' && !session) {
+          setLoading(false);
+        }
       }
     });
 
