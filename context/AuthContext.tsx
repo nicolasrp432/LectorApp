@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User, ReadingLog, Book, Flashcard, Notification, Achievement, Reward, UserStats } from '../types';
 import { supabase } from '../utils/supabase';
 import { dbService } from '../services/db';
@@ -33,22 +33,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [readingLogs, setReadingLogs] = useState<ReadingLog[]>([]);
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  
-  const initializingRef = useRef(false);
 
-  const loadUserData = async (userId: string, email: string, metadata?: any) => {
-    // Evitar colisiones en la inicialización
-    if (initializingRef.current) return;
-    initializingRef.current = true;
-    
+  const loadUserData = useCallback(async (userId: string, email: string, metadata?: any) => {
     try {
       setLoading(true);
-      console.log(`[AuthSystem] Cargando datos para: ${email}`);
+      console.log(`[AuthSystem] Sincronizando: ${email}`);
       
       let profile = await dbService.getUserProfile(userId);
       
+      // Si el perfil no existe (usuario nuevo de Google o Email), lo creamos
       if (!profile) {
-        console.log("[AuthSystem] Perfil no encontrado, creando uno nuevo...");
+        console.log("[AuthSystem] Creando perfil automático...");
         
         const savedAssessment = localStorage.getItem('pending_assessment');
         const assessmentData = savedAssessment ? JSON.parse(savedAssessment) : null;
@@ -69,13 +64,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           maxWordSpan: 3 
         };
 
+        // Priorizar datos de metadatos de Google
         const displayName = metadata?.full_name || metadata?.display_name || email.split('@')[0];
+        const avatarUrl = metadata?.avatar_url || AVATARS[0];
 
         const newUser: User = {
           id: userId,
           name: displayName,
           email: email,
-          avatarUrl: metadata?.avatar_url || AVATARS[0],
+          avatarUrl: avatarUrl,
           stats: initialStats,
           joinedDate: Date.now(),
           baselineWPM: assessmentData?.wpm || 200,
@@ -94,6 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await dbService.createUserProfile(newUser);
         profile = newUser;
         
+        // Vincular test pendiente si existe
         if (assessmentData) {
             await dbService.addReadingLog({
                 id: `init-${Date.now()}`,
@@ -110,6 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
+      // Cargar datos relacionales
       if (profile) {
         const [fetchedLogs, fetchedBooks, fetchedCards] = await Promise.all([
           dbService.getReadingLogs(userId),
@@ -124,34 +123,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(profile);
       }
     } catch (err) {
-      console.error("[AuthSystem] Error crítico al cargar usuario:", err);
+      console.error("[AuthSystem] Error en sincronización de datos:", err);
     } finally {
       setLoading(false);
-      initializingRef.current = false;
     }
-  };
+  }, []);
 
   useEffect(() => {
-    // Escucha cambios de sesión de forma global
-    const initAuth = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-            await loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
-        } else {
-            setLoading(false);
-        }
-    };
-
-    initAuth();
-
+    // Escucha única de estado de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`[SupabaseEvent] ${event}`);
+      console.log(`[SupabaseAuth] Evento: ${event}`);
       
       if (session?.user) {
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-            await loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
-        }
+        // Ejecutar carga de datos para cualquier evento con sesión activa
+        await loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
       } else {
+        // Solo si no hay sesión, limpiamos y quitamos el loading
         if (event === 'SIGNED_OUT') {
           setUser(null);
           setBooks(SUGGESTED_BOOKS);
@@ -163,7 +150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [loadUserData]);
 
   const loginAsGuest = () => {
     const guestUser: User = {
@@ -237,8 +224,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    setLoading(true);
     await supabase.auth.signOut();
     setUser(null);
+    setLoading(false);
   };
 
   return (

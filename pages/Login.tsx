@@ -175,7 +175,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                 </div>
 
                 <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-500 ml-1">Contraseña</label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400 ml-1">Contraseña</label>
                     <div className="relative group">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-400 group-focus-within:text-primary transition-colors text-[20px]">lock</span>
                         <input 
@@ -205,9 +205,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                 </button>
             </form>
 
-            <div className="mt-8 text-center">
+            <div className="mt-4 text-center">
                 <p className="text-sm text-gray-500">
-                    ¿No tienes cuenta? <span onClick={() => onNavigate(AppRoute.REGISTER)} className="text-primary font-bold cursor-pointer hover:underline">Registrarse</span>
+                    ¿No tienes cuenta? <span onClick={() => onNavigate(AppRoute.REGISTER)} className="text-primary font-bold cursor-pointer hover:underline">Regístrate</span>
                 </p>
             </div>
         </div>

@@ -65,6 +65,13 @@ const Welcome: React.FC<WelcomeProps> = ({ onNavigate }) => {
           <span>Iniciar Sesión</span>
           <span className="material-symbols-outlined ml-2 text-[24px] transition-transform group-hover:translate-x-1">login</span>
         </button>
+
+        {/* ENLACE DE REGISTRO DIRECTO */}
+        <div className="text-center -mt-2 mb-2">
+            <p className="text-sm text-gray-500">
+                ¿No tienes cuenta? <span onClick={() => onNavigate(AppRoute.REGISTER)} className="text-primary font-bold cursor-pointer hover:underline">Regístrate</span>
+            </p>
+        </div>
         
         {/* LINK SECUNDARIO: TEST INICIAL PARA NUEVOS */}
         <div className="text-center">
@@ -72,7 +79,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onNavigate }) => {
             onClick={() => onNavigate(AppRoute.ASSESSMENT_INTRO)} 
             className="text-slate-500 dark:text-[#93c8a5] text-sm font-medium leading-normal hover:text-primary transition-colors flex flex-col items-center gap-1 mx-auto"
           >
-            <p>¿Nuevo aquí?</p>
+            <p>¿Prefieres empezar de cero?</p>
             <span className="font-bold underline decoration-1 underline-offset-4 text-primary">Toma el test para iniciar</span>
           </button>
         </div>
