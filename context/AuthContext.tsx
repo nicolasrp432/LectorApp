@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { User, ReadingLog, Book, Flashcard, Notification, Achievement, Reward, UserStats } from '../types';
 import { supabase } from '../utils/supabase';
 import { dbService } from '../services/db';
@@ -33,17 +33,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [readingLogs, setReadingLogs] = useState<ReadingLog[]>([]);
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  
+  const isInitializing = useRef(false);
 
   const loadUserData = useCallback(async (userId: string, email: string, metadata?: any) => {
+    if (isInitializing.current && user?.id === userId) return;
+    isInitializing.current = true;
+    
     try {
       setLoading(true);
-      console.log(`[AuthSystem] Sincronizando: ${email}`);
+      console.log(`[AuthSystem] Sincronizando datos para: ${email}`);
       
       let profile = await dbService.getUserProfile(userId);
       
-      // Si el perfil no existe (usuario nuevo de Google o Email), lo creamos
+      // Si el perfil no existe en la tabla pública 'profiles', lo creamos ahora
       if (!profile) {
-        console.log("[AuthSystem] Creando perfil automático...");
+        console.log("[AuthSystem] Perfil no encontrado en DB, creando registro inicial...");
         
         const savedAssessment = localStorage.getItem('pending_assessment');
         const assessmentData = savedAssessment ? JSON.parse(savedAssessment) : null;
@@ -64,7 +69,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           maxWordSpan: 3 
         };
 
-        // Priorizar datos de metadatos de Google
         const displayName = metadata?.full_name || metadata?.display_name || email.split('@')[0];
         const avatarUrl = metadata?.avatar_url || AVATARS[0];
 
@@ -91,7 +95,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await dbService.createUserProfile(newUser);
         profile = newUser;
         
-        // Vincular test pendiente si existe
         if (assessmentData) {
             await dbService.addReadingLog({
                 id: `init-${Date.now()}`,
@@ -108,7 +111,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      // Cargar datos relacionales
       if (profile) {
         const [fetchedLogs, fetchedBooks, fetchedCards] = await Promise.all([
           dbService.getReadingLogs(userId),
@@ -123,22 +125,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(profile);
       }
     } catch (err) {
-      console.error("[AuthSystem] Error en sincronización de datos:", err);
+      console.error("[AuthSystem] Error crítico al cargar datos de usuario:", err);
     } finally {
       setLoading(false);
+      isInitializing.current = false;
     }
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
-    // Escucha única de estado de autenticación
+    // 1. Verificar sesión inicial
+    const checkInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
+      } else {
+        setLoading(false);
+      }
+    };
+
+    checkInitialSession();
+
+    // 2. Escuchar cambios de estado (OAuth Redirects aterrizan aquí)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log(`[SupabaseAuth] Evento: ${event}`);
       
       if (session?.user) {
-        // Ejecutar carga de datos para cualquier evento con sesión activa
-        await loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          await loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
+        }
       } else {
-        // Solo si no hay sesión, limpiamos y quitamos el loading
         if (event === 'SIGNED_OUT') {
           setUser(null);
           setBooks(SUGGESTED_BOOKS);

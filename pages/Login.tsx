@@ -29,7 +29,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
         });
 
         if (error) {
-            // Error amigable si el usuario existe pero es de Google (sin password)
             if (error.message.toLowerCase().includes('invalid login')) {
                 throw new Error("Credenciales inválidas. Si te registraste con Google, intenta entrar con el botón de Google o restablece tu contraseña.");
             }
@@ -76,7 +75,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
         setErrorMsg('');
         
         const redirectTo = window.location.origin;
-        console.log(`[Auth] Google Login: Redirigiendo a ${redirectTo}`);
+        console.log(`[Auth] Iniciando flujo Google OAuth. Redirect a: ${redirectTo}`);
 
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
@@ -144,10 +143,16 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
             <button 
                 type="button"
                 onClick={handleGuestLogin}
-                className="w-full bg-white/5 hover:bg-white/10 border border-white/5 text-gray-500 text-[10px] font-bold h-10 rounded-xl mb-6 transition-all uppercase tracking-widest"
+                className="w-full bg-white/5 hover:bg-white/10 border border-white/5 text-gray-500 text-[10px] font-bold h-10 rounded-xl mb-4 transition-all uppercase tracking-widest"
             >
                 Entrar como Invitado
             </button>
+
+            <div className="text-center mb-6">
+                <p className="text-sm text-gray-500">
+                    ¿No tienes cuenta? <span onClick={() => onNavigate(AppRoute.REGISTER)} className="text-primary font-bold cursor-pointer hover:underline">Regístrate</span>
+                </p>
+            </div>
 
             <div className="relative mb-6">
                 <div className="absolute inset-0 flex items-center">
