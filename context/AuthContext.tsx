@@ -37,23 +37,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const initializingRef = useRef(false);
 
   const loadUserData = async (userId: string, email: string, metadata?: any) => {
-    // Evitar múltiples ejecuciones simultáneas para el mismo usuario
+    // Evitar colisiones en la inicialización
     if (initializingRef.current) return;
     initializingRef.current = true;
     
-    console.log(`[AuthSystem] Sincronizando usuario interno: ${email}`);
-    
     try {
       setLoading(true);
+      console.log(`[AuthSystem] Cargando datos para: ${email}`);
       
-      // 1. Intentar recuperar el perfil existente
       let profile = await dbService.getUserProfile(userId);
       
-      // 2. Si no existe, es un nuevo registro (posiblemente vía Google)
       if (!profile) {
-        console.log("[AuthSystem] Usuario nuevo detectado. Creando perfil interno...");
+        console.log("[AuthSystem] Perfil no encontrado, creando uno nuevo...");
         
-        // Recuperar datos del test inicial si existen
         const savedAssessment = localStorage.getItem('pending_assessment');
         const assessmentData = savedAssessment ? JSON.parse(savedAssessment) : null;
 
@@ -73,7 +69,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           maxWordSpan: 3 
         };
 
-        // Extraer nombre del metadata de Google o el email
         const displayName = metadata?.full_name || metadata?.display_name || email.split('@')[0];
 
         const newUser: User = {
@@ -99,7 +94,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await dbService.createUserProfile(newUser);
         profile = newUser;
         
-        // Si había un test, registrarlo en el historial inmediatamente
         if (assessmentData) {
             await dbService.addReadingLog({
                 id: `init-${Date.now()}`,
@@ -116,7 +110,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      // 3. Cargar datos relacionados (Libros, Logs, Tarjetas)
       if (profile) {
         const [fetchedLogs, fetchedBooks, fetchedCards] = await Promise.all([
           dbService.getReadingLogs(userId),
@@ -129,10 +122,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setFlashcards(fetchedCards);
         setNotifications(MOCK_NOTIFICATIONS);
         setUser(profile);
-        console.log("[AuthSystem] Sesión establecida correctamente.");
       }
     } catch (err) {
-      console.error("[AuthSystem] Error en la carga de usuario:", err);
+      console.error("[AuthSystem] Error crítico al cargar usuario:", err);
     } finally {
       setLoading(false);
       initializingRef.current = false;
@@ -140,27 +132,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // Escuchar cambios de sesión de forma proactiva
+    // Escucha cambios de sesión de forma global
+    const initAuth = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+            await loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
+        } else {
+            setLoading(false);
+        }
+    };
+
+    initAuth();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`[AuthEvent] ${event}`);
+      console.log(`[SupabaseEvent] ${event}`);
       
       if (session?.user) {
-        await loadUserData(
-          session.user.id, 
-          session.user.email || '', 
-          session.user.user_metadata
-        );
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+            await loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
+        }
       } else {
-        // Solo resetear si realmente se cerró la sesión
         if (event === 'SIGNED_OUT') {
           setUser(null);
           setBooks(SUGGESTED_BOOKS);
           setReadingLogs([]);
           setFlashcards([]);
-          setLoading(false);
-        } else if (event === 'INITIAL_SESSION' && !session) {
-          setLoading(false);
         }
+        setLoading(false);
       }
     });
 
@@ -186,10 +184,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const refreshUser = async () => {
-    if (user && user.id !== 'guest') {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) await loadUserData(session.user.id, session.user.email || '', session.user.user_metadata);
-    }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) await loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
   };
 
   const updateUser = async (updates: Partial<User>) => {

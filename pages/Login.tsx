@@ -15,6 +15,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [resetSent, setResetSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,12 +28,38 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
             password,
         });
 
-        if (error) throw error;
+        if (error) {
+            // Error amigable si el usuario existe pero es de Google (sin password)
+            if (error.message.toLowerCase().includes('invalid login')) {
+                throw new Error("Credenciales inválidas. Si te registraste con Google, intenta entrar con el botón de Google o restablece tu contraseña.");
+            }
+            throw error;
+        }
         onLogin(); 
         onNavigate(AppRoute.DASHBOARD);
     } catch (error: any) {
         console.error("Login error", error);
         setErrorMsg(error.message || 'Error al iniciar sesión');
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+        setErrorMsg("Por favor, introduce tu email primero para recuperar la contraseña.");
+        return;
+    }
+    setIsLoading(true);
+    try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin,
+        });
+        if (error) throw error;
+        setResetSent(true);
+        setErrorMsg("Te hemos enviado un email para crear tu nueva contraseña.");
+    } catch (error: any) {
+        setErrorMsg(error.message);
     } finally {
         setIsLoading(false);
     }
@@ -48,9 +75,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
         setIsLoading(true);
         setErrorMsg('');
         
-        // Redirección dinámica basada en la ubicación actual
         const redirectTo = window.location.origin;
-        console.log(`[Auth] Iniciando flujo Google OAuth. Redirect a: ${redirectTo}`);
+        console.log(`[Auth] Google Login: Redirigiendo a ${redirectTo}`);
 
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
@@ -66,7 +92,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
         if (error) throw error;
     } catch (error: any) {
         console.error("Google Login Error:", error);
-        setErrorMsg("Error al conectar con Google. Revisa la consola para más detalles.");
+        setErrorMsg("Error al conectar con Google.");
         setIsLoading(false);
     }
   };
@@ -81,18 +107,23 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
             </button>
         </div>
 
-        <div className="flex-1 flex flex-col justify-center px-8 z-10">
+        <div className="flex-1 flex flex-col justify-center px-8 z-10 max-w-md mx-auto w-full">
             <div className="mb-8 text-center">
                 <div className="inline-flex items-center justify-center size-16 rounded-2xl bg-gradient-to-br from-primary/20 to-transparent border border-primary/20 mb-6 shadow-lg shadow-primary/10">
                     <span className="material-symbols-outlined text-primary text-4xl">fingerprint</span>
                 </div>
                 <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Bienvenido</h1>
-                <p className="text-slate-500 dark:text-gray-400">Accede a tu córtex de memoria personal.</p>
+                <p className="text-slate-500 dark:text-gray-400 text-sm">Accede a tu córtex de memoria personal.</p>
             </div>
 
             {errorMsg && (
-                <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm text-center animate-in fade-in zoom-in-95">
+                <div className={`mb-6 p-3 border rounded-xl text-sm text-center animate-in fade-in zoom-in-95 ${resetSent ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
                     {errorMsg}
+                    {!resetSent && errorMsg.includes('inválidas') && (
+                        <div className="mt-2">
+                            <button onClick={handleForgotPassword} className="font-bold underline">¿Olvidaste tu contraseña?</button>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -113,7 +144,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
             <button 
                 type="button"
                 onClick={handleGuestLogin}
-                className="w-full bg-white/5 hover:bg-white/10 border border-white/5 text-gray-500 text-xs font-bold h-10 rounded-xl mb-6 transition-all uppercase tracking-widest"
+                className="w-full bg-white/5 hover:bg-white/10 border border-white/5 text-gray-500 text-[10px] font-bold h-10 rounded-xl mb-6 transition-all uppercase tracking-widest"
             >
                 Entrar como Invitado
             </button>
@@ -122,37 +153,37 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                 <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-gray-200 dark:border-white/10"></div>
                 </div>
-                <div className="relative flex justify-center text-sm">
+                <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest">
                     <span className="px-2 bg-background-light dark:bg-background-dark text-gray-500">O usa tu email</span>
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-500 ml-1">Email</label>
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-500 ml-1">Email</label>
                     <div className="relative group">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-400 group-focus-within:text-primary transition-colors">mail</span>
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-400 group-focus-within:text-primary transition-colors text-[20px]">mail</span>
                         <input 
                             type="email" 
                             required
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-4 pl-12 pr-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none shadow-sm"
+                            className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 pl-12 pr-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none text-sm"
                             placeholder="tu@email.com"
                         />
                     </div>
                 </div>
 
-                <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-500 ml-1">Contraseña</label>
+                <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-500 ml-1">Contraseña</label>
                     <div className="relative group">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-400 group-focus-within:text-primary transition-colors">lock</span>
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-400 group-focus-within:text-primary transition-colors text-[20px]">lock</span>
                         <input 
                             type="password" 
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-4 pl-12 pr-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none shadow-sm"
+                            className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 pl-12 pr-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none text-sm"
                             placeholder="••••••••"
                         />
                     </div>
@@ -161,7 +192,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                 <button 
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-primary hover:bg-primary-dark active:scale-[0.98] transition-all text-background-dark font-bold text-lg h-14 rounded-xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(25,230,94,0.3)] disabled:opacity-70 disabled:cursor-not-allowed mt-4"
+                    className="w-full bg-primary hover:bg-primary-dark active:scale-[0.98] transition-all text-background-dark font-bold text-lg h-14 rounded-xl flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(25,230,94,0.3)] disabled:opacity-70 mt-2"
                 >
                     {isLoading && email ? (
                         <span className="size-5 border-2 border-background-dark border-t-transparent rounded-full animate-spin"></span>

@@ -20,7 +20,6 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
     e.preventDefault();
     setErrorMsg('');
 
-    // Validación local de contraseña
     if (password.length < 6) {
         setErrorMsg("La contraseña debe tener al menos 6 caracteres.");
         return;
@@ -33,6 +32,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
             email,
             password,
             options: {
+                emailRedirectTo: window.location.origin, // Crucial para que Supabase envíe el email
                 data: {
                     display_name: name,
                 }
@@ -40,22 +40,22 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
         });
 
         if (error) {
-            // Manejo específico del error de rate limit
             if (error.message.includes('security purposes') || error.status === 429) {
-                throw new Error("Por seguridad, espera unos minutos antes de intentar registrarte de nuevo.");
+                throw new Error("Por seguridad, espera unos minutos antes de intentar de nuevo.");
             }
             throw error;
         }
 
-        // Caso 1: Supabase requiere confirmación de email (Session es null)
+        // Si el email no está confirmado y no hay sesión, mostramos éxito
         if (data.user && !data.session) {
             setShowSuccess(true);
             return;
         }
 
-        // Caso 2: Registro inmediato exitoso (Session activa)
+        // Si ya hay sesión (confirmación deshabilitada en Supabase o auto-confirmado)
         if (data.user && data.session) {
              onRegister(name, email);
+             onNavigate(AppRoute.DASHBOARD);
         }
 
     } catch (error: any) {
@@ -72,7 +72,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
         setErrorMsg('');
         
         const redirectTo = window.location.origin;
-        console.log(`[Auth] Iniciando registro con Google OAuth. Redirect a: ${redirectTo}`);
+        console.log(`[Auth] Google Register: Redirigiendo a ${redirectTo}`);
 
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
@@ -100,10 +100,10 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
                 <span className="material-symbols-outlined text-6xl text-green-500">mark_email_read</span>
             </div>
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">¡Casi listo!</h1>
-            <p className="text-slate-600 dark:text-gray-300 text-lg mb-8 max-w-sm">
-                Hemos enviado un correo de confirmación a <b>{email}</b>.
+            <p className="text-slate-600 dark:text-gray-300 text-lg mb-8 max-w-sm leading-relaxed">
+                Hemos enviado un correo de confirmación a <br/><b>{email}</b>.
                 <br/><br/>
-                Por favor, verifica tu cuenta para poder acceder a la aplicación.
+                Por favor, verifica tu cuenta desde tu bandeja de entrada para poder acceder.
             </p>
             <button 
                 onClick={() => onNavigate(AppRoute.LOGIN)}
@@ -128,7 +128,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
         <div className="flex-1 flex flex-col justify-center px-8 z-10 max-w-md mx-auto w-full">
             <div className="mb-6 text-center">
                 <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Crear Cuenta</h1>
-                <p className="text-slate-500 dark:text-gray-400">Guarda tus resultados y comienza tu entrenamiento.</p>
+                <p className="text-slate-500 dark:text-gray-400 text-sm">Guarda tus resultados y comienza tu entrenamiento.</p>
             </div>
 
             {errorMsg && (
@@ -155,43 +155,43 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
                 <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-gray-200 dark:border-white/10"></div>
                 </div>
-                <div className="relative flex justify-center text-sm">
+                <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest">
                     <span className="px-2 bg-background-light dark:bg-background-dark text-gray-500">O usa tu email</span>
                 </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-500 ml-1">Nombre</label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-500 ml-1">Nombre</label>
                     <input 
                         type="text" 
                         required
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none"
+                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none text-sm"
                         placeholder="Tu nombre"
                     />
                 </div>
                 <div className="space-y-1">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-500 ml-1">Email</label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-500 ml-1">Email</label>
                     <input 
                         type="email" 
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none"
+                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none text-sm"
                         placeholder="usuario@ejemplo.com"
                     />
                 </div>
                 <div className="space-y-1">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-500 ml-1">Contraseña</label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-500 ml-1">Contraseña</label>
                     <input 
                         type="password" 
                         required
                         minLength={6}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none"
+                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none text-sm"
                         placeholder="Mínimo 6 caracteres"
                     />
                 </div>
@@ -199,7 +199,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
                 <button 
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-primary hover:bg-primary-dark active:scale-[0.98] transition-all text-background-dark font-bold text-lg h-14 rounded-xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(25,230,94,0.3)] mt-6"
+                    className="w-full bg-primary hover:bg-primary-dark active:scale-[0.98] transition-all text-background-dark font-bold text-lg h-14 rounded-xl flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(25,230,94,0.3)] mt-6"
                 >
                     {isLoading && (email || name) ? (
                         <span className="size-5 border-2 border-background-dark border-t-transparent rounded-full animate-spin"></span>
