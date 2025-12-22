@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { User, ReadingLog, Book, Flashcard, Notification, Achievement, Reward, UserStats } from '../types';
 import { supabase } from '../utils/supabase';
 import { dbService } from '../services/db';
-import { SUGGESTED_BOOKS, MOCK_NOTIFICATIONS, ACHIEVEMENTS_LIST, AVATARS } from '../constants';
+import { SUGGESTED_BOOKS, MOCK_NOTIFICATIONS, AVATARS } from '../constants';
 
 interface AuthContextType {
   user: User | null;
@@ -34,20 +34,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   
-  // Usar una referencia para evitar llamadas duplicadas durante la fase de carga inicial
-  const sessionLoadingRef = useRef(false);
+  const initializingRef = useRef(false);
 
-  const loadUserData = async (userId: string, email: string) => {
-    if (sessionLoadingRef.current && user) return;
-    sessionLoadingRef.current = true;
+  const loadUserData = async (userId: string, email: string, metadata?: any) => {
+    if (initializingRef.current) return;
+    initializingRef.current = true;
+    
+    console.log(`[Auth] Cargando datos para: ${email}`);
     
     try {
       setLoading(true);
-      
-      // 1. Recuperar perfil de la DB
       let profile = await dbService.getUserProfile(userId);
       
-      // 2. Revisar si hay un test pendiente en localStorage
       const savedAssessment = localStorage.getItem('pending_assessment');
       const assessmentData = savedAssessment ? JSON.parse(savedAssessment) : null;
 
@@ -59,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
 
       if (!profile) {
-        // --- REGISTRO AUTOMÁTICO DE NUEVO USUARIO ---
+        console.log("[Auth] Perfil no encontrado. Creando nuevo perfil...");
         const initialStats: UserStats = { 
           streak: 1, 
           tel: assessmentData?.tel || 200, 
@@ -69,11 +67,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           maxWordSpan: 3 
         };
 
+        const displayName = metadata?.full_name || metadata?.display_name || email.split('@')[0];
+
         const newUser: User = {
           id: userId,
-          name: email.split('@')[0],
+          name: displayName,
           email: email,
-          avatarUrl: AVATARS[0],
+          avatarUrl: metadata?.avatar_url || AVATARS[0],
           stats: initialStats,
           joinedDate: Date.now(),
           baselineWPM: assessmentData?.wpm || 200,
@@ -92,8 +92,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await dbService.createUserProfile(newUser);
         profile = newUser;
         
-        // Registrar log inicial del test
         if (assessmentData) {
+            console.log("[Auth] Vinculando resultados del test previo...");
             await dbService.addReadingLog({
                 id: `init-${Date.now()}`,
                 userId: userId,
@@ -105,16 +105,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 telCalculated: assessmentData.tel,
                 timestamp: Date.now()
             });
+            localStorage.removeItem('pending_assessment');
         }
-      } else if (assessmentData) {
-        // --- ACTUALIZAR PUNTO DE PARTIDA ---
-        const updatedStats = { ...profile.stats, tel: Math.max(profile.stats.tel, assessmentData.tel) };
-        await dbService.updateUserStats(userId, updatedStats);
-        profile = { ...profile, stats: updatedStats, level: calculateLevel(updatedStats.tel) };
+        console.log("[Auth] Perfil creado con éxito.");
+      } else {
+        console.log("[Auth] Perfil existente recuperado.");
       }
-
-      // Limpiar rastro del test
-      if (assessmentData) localStorage.removeItem('pending_assessment');
 
       if (profile) {
         setUser(profile);
@@ -129,61 +125,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setNotifications(MOCK_NOTIFICATIONS);
       }
     } catch (err) {
-      console.error("Error loading user data:", err);
+      console.error("[Auth] Error critico en AuthContext:", err);
     } finally {
       setLoading(false);
-      sessionLoadingRef.current = false;
+      initializingRef.current = false;
     }
   };
 
   useEffect(() => {
-    let mounted = true;
-
-    const initAuth = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          if (error.message.includes('Refresh Token Not Found')) {
-            await supabase.auth.signOut();
-          }
-          if (mounted) setLoading(false);
-          return;
-        }
-        if (session?.user && mounted) {
-          await loadUserData(session.user.id, session.user.email || '');
-        } else {
-          if (mounted) {
-            setLoading(false);
-            setBooks(SUGGESTED_BOOKS);
-          }
-        }
-      } catch (err) {
-        if (mounted) setLoading(false);
+    const initSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await loadUserData(session.user.id, session.user.email || '', session.user.user_metadata);
+      } else {
+        setLoading(false);
       }
     };
-    initAuth();
+
+    initSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
+      console.log(`[Auth] Evento: ${event}`);
       if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
-        await loadUserData(session.user.id, session.user.email || '');
+        await loadUserData(session.user.id, session.user.email || '', session.user.user_metadata);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
-        setBooks(SUGGESTED_BOOKS);
-        setReadingLogs([]);
-        setFlashcards([]);
         setLoading(false);
       }
     });
 
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   const loginAsGuest = () => {
-    setLoading(true);
     const guestUser: User = {
         id: 'guest',
         name: 'Invitado',
@@ -198,64 +172,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     setUser(guestUser);
     setBooks(SUGGESTED_BOOKS);
-    setReadingLogs([]);
-    setFlashcards([]);
     setLoading(false);
   };
 
   const refreshUser = async () => {
-    if (user && user.id !== 'guest') await loadUserData(user.id, user.email);
+    if (user && user.id !== 'guest') {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) await loadUserData(session.user.id, session.user.email || '', session.user.user_metadata);
+    }
   };
 
   const updateUser = async (updates: Partial<User>) => {
     if (!user) return;
     const updated = { ...user, ...updates };
     setUser(updated);
-    if (user.id === 'guest') return;
-    
-    if (updates.stats) await dbService.updateUserStats(user.id, updated.stats);
-    if (updates.preferences) await dbService.updateUserPreferences(user.id, updated.preferences);
-    
-    if (updates.achievements || updates.avatarUrl || updates.name) {
-        await supabase.from('profiles').update({ 
-            achievements: updated.achievements,
-            avatar_url: updated.avatarUrl,
-            name: updated.name,
-            level: updated.level
-        }).eq('id', user.id);
+    if (user.id !== 'guest') {
+        if (updates.stats) await dbService.updateUserStats(user.id, updated.stats);
+        if (updates.preferences) await dbService.updateUserPreferences(user.id, updated.preferences);
     }
   };
 
-  const equipReward = async (reward: Reward) => {
-      if (!user) return;
-      let updates: Partial<User> = {};
-      if (reward.type === 'theme') {
-          updates = { preferences: { ...user.preferences, themeColor: reward.value } };
-      } else if (reward.type === 'avatar') {
-          updates = { avatarUrl: reward.value };
-      }
-      await updateUser(updates);
+  const logReading = async (logData: Omit<ReadingLog, 'id' | 'userId' | 'timestamp'>) => {
+    if (!user) return;
+    const now = Date.now();
+    const newLog: ReadingLog = { ...logData, id: `temp-${now}`, userId: user.id, timestamp: now };
+    setReadingLogs(prev => [...prev, newLog]);
+    if (user.id !== 'guest') await dbService.addReadingLog(newLog);
   };
 
-  const addBook = async (book: Book): Promise<string | null> => {
+  const addBook = async (book: Book) => {
     if (!user) return null;
     const bookWithUser = { ...book, userId: user.id };
-    let finalId = book.id;
-    
+    let id = book.id;
     if (user.id !== 'guest') {
-      const dbId = await dbService.addUserBook(bookWithUser);
-      if (dbId) finalId = dbId;
+        const dbId = await dbService.addUserBook(bookWithUser);
+        if (dbId) id = dbId;
     }
-    
-    setBooks(prev => [{ ...bookWithUser, id: finalId }, ...prev.filter(b => !SUGGESTED_BOOKS.some(sb => sb.id === b.id))]);
-    return finalId;
+    setBooks(prev => [{ ...bookWithUser, id }, ...prev]);
+    return id;
   };
 
   const addFlashcards = async (cards: Flashcard[]) => {
     if (!user) return;
-    const cardsWithUser = cards.map(c => ({ ...c, userId: user.id }));
-    if (user.id !== 'guest') await dbService.addFlashcards(cardsWithUser);
-    setFlashcards(prev => [...cardsWithUser, ...prev]);
+    if (user.id !== 'guest') await dbService.addFlashcards(cards.map(c => ({ ...c, userId: user.id })));
+    setFlashcards(prev => [...cards, ...prev]);
   };
 
   const updateFlashcard = async (card: Flashcard) => {
@@ -264,21 +224,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setFlashcards(prev => prev.map(c => c.id === card.id ? card : c));
   };
 
-  const logReading = async (logData: Omit<ReadingLog, 'id' | 'userId' | 'timestamp'>) => {
-    if (!user) return;
-    const now = Date.now();
-    const newLog: ReadingLog = { ...logData, id: `temp-${now}`, userId: user.id, timestamp: now };
-    setReadingLogs(prev => [...prev, newLog]);
-    
-    const updatedStats = { 
-        ...user.stats, 
-        xp: user.stats.xp + 25, 
-        lastActiveDate: now,
-        tel: Math.max(user.stats.tel, logData.telCalculated || 0)
-    };
-    
-    await updateUser({ stats: updatedStats });
-    if (user.id !== 'guest') await dbService.addReadingLog(newLog);
+  const equipReward = async (reward: Reward) => {
+      if (!user) return;
+      if (reward.type === 'theme') await updateUser({ preferences: { ...user.preferences, themeColor: reward.value } });
+      else if (reward.type === 'avatar') await updateUser({ avatarUrl: reward.value });
   };
 
   const logout = async () => {

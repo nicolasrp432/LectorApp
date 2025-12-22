@@ -5,30 +5,33 @@ import { User, ReadingLog, Book, Flashcard, MemoryPalace, UserStats, UserPrefere
 export const dbService = {
     // --- Auth & User ---
     async getUserProfile(userId: string): Promise<User | null> {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .maybeSingle();
-            
-        if (error || !data) return null;
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .maybeSingle();
+                
+            if (error || !data) return null;
 
-        return {
-            id: data.id,
-            name: data.name,
-            email: data.email,
-            avatarUrl: data.avatar_url,
-            stats: data.stats,
-            preferences: data.preferences,
-            achievements: data.achievements || [],
-            joinedDate: new Date(data.joined_at).getTime(),
-            baselineWPM: 200, 
-            level: 'Estudiante'
-        };
+            return {
+                id: data.id,
+                name: data.name,
+                email: data.email,
+                avatarUrl: data.avatar_url,
+                stats: data.stats,
+                preferences: data.preferences,
+                achievements: data.achievements || [],
+                joinedDate: new Date(data.joined_at).getTime(),
+                baselineWPM: 200, 
+                level: data.level || 'Estudiante'
+            };
+        } catch (e) {
+            return null;
+        }
     },
 
     async createUserProfile(user: User): Promise<void> {
-        // Usamos upsert para evitar errores si el perfil ya existe
         const { error } = await supabase.from('profiles').upsert({
             id: user.id,
             email: user.email,
@@ -37,27 +40,22 @@ export const dbService = {
             stats: user.stats,
             preferences: user.preferences,
             achievements: user.achievements || [],
+            level: user.level,
             joined_at: new Date().toISOString()
         }, { onConflict: 'id' });
 
         if (error) {
-            console.error("Critical error creating profile:", error.message);
+            console.error("Error al crear perfil en DB:", error.message);
             throw error;
         }
     },
 
     async updateUserStats(userId: string, stats: UserStats): Promise<void> {
-        const { error } = await supabase.from('profiles').update({
-            stats: stats
-        }).eq('id', userId);
-        if (error) console.error("Error updating stats:", error.message);
+        await supabase.from('profiles').update({ stats }).eq('id', userId);
     },
 
     async updateUserPreferences(userId: string, preferences: UserPreferences): Promise<void> {
-        const { error } = await supabase.from('profiles').update({
-            preferences: preferences
-        }).eq('id', userId);
-        if (error) console.error("Error updating preferences:", error.message);
+        await supabase.from('profiles').update({ preferences }).eq('id', userId);
     },
 
     // --- Flashcards ---
@@ -66,9 +64,7 @@ export const dbService = {
             .from('flashcards')
             .select('*')
             .eq('user_id', userId);
-
         if (error) return [];
-
         return data.map((row: any) => ({
             id: row.id,
             userId: row.user_id,
@@ -86,7 +82,6 @@ export const dbService = {
 
     async addFlashcards(cards: Flashcard[]): Promise<void> {
         if(cards.length === 0) return;
-        
         const dbCards = cards.map(c => ({
             user_id: c.userId,
             book_id: c.bookId && c.bookId.length > 20 ? c.bookId : null,
@@ -98,13 +93,11 @@ export const dbService = {
             due_date: c.dueDate,
             mastery_level: c.masteryLevel || 0
         }));
-
-        const { error } = await supabase.from('flashcards').insert(dbCards);
-        if (error) console.error("Error adding flashcards:", error.message);
+        await supabase.from('flashcards').insert(dbCards);
     },
 
     async updateFlashcard(card: Flashcard): Promise<void> {
-        const { error } = await supabase.from('flashcards').update({
+        await supabase.from('flashcards').update({
             interval: card.interval,
             repetition: card.repetition,
             efactor: card.efactor,
@@ -112,8 +105,6 @@ export const dbService = {
             last_reviewed: card.lastReviewed,
             mastery_level: card.masteryLevel
         }).eq('id', card.id);
-
-        if (error) console.error("Error updating flashcard:", error.message);
     },
 
     // --- Books ---
@@ -122,9 +113,7 @@ export const dbService = {
             .from('user_books')
             .select('*')
             .eq('user_id', userId);
-        
         if (error || !data) return [];
-        
         return data.map((row: any) => ({
             id: row.id,
             userId: row.user_id,
@@ -152,7 +141,6 @@ export const dbService = {
             })
             .select('id')
             .single();
-
         if (error) return null;
         return data.id;
     },
@@ -164,9 +152,7 @@ export const dbService = {
             .select('*')
             .eq('user_id', userId)
             .order('created_at', { ascending: true });
-
         if (error || !data) return [];
-
         return data.map((row: any) => ({
             id: row.id,
             userId: row.user_id,
@@ -181,7 +167,7 @@ export const dbService = {
     },
 
     async addReadingLog(log: ReadingLog): Promise<void> {
-        const { error } = await supabase.from('reading_logs').insert({
+        await supabase.from('reading_logs').insert({
             user_id: log.userId,
             exercise_type: log.exerciseType,
             score_data: {
@@ -192,7 +178,6 @@ export const dbService = {
                 comprehensionRate: log.comprehensionRate
             }
         });
-        if (error) console.error("Error adding reading log:", error.message);
     },
 
     // --- Memory Palaces ---
@@ -202,9 +187,7 @@ export const dbService = {
             .select('*')
             .eq('user_id', userId)
             .order('created_at', { ascending: false });
-
         if (error || !data) return [];
-
         return data.map((row: any) => ({
             id: row.id,
             userId: row.user_id,
@@ -217,13 +200,12 @@ export const dbService = {
     },
 
     async addMemoryPalace(palace: MemoryPalace): Promise<void> {
-        const { error } = await supabase.from('memory_palaces').insert({
+        await supabase.from('memory_palaces').insert({
             user_id: palace.userId,
             name: palace.name,
             method: palace.method,
             description: palace.description,
             items: palace.items
         });
-        if (error) console.error("Error adding memory palace:", error.message);
     }
 };

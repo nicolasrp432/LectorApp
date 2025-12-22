@@ -45,19 +45,29 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
 
   const handleGoogleLogin = async () => {
     try {
+        setIsLoading(true);
         setErrorMsg('');
-        // Aseguramos que la URL sea absoluta y apunte a la raíz para que el router de la SPA maneje el regreso
-        const redirectTo = window.location.origin.replace(/\/$/, ""); 
+        
+        // Redirección dinámica basada en la ubicación actual
+        const redirectTo = window.location.origin;
+        console.log(`[Auth] Iniciando flujo Google OAuth. Redirect a: ${redirectTo}`);
+
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: redirectTo 
+                redirectTo: redirectTo,
+                queryParams: {
+                    access_type: 'offline',
+                    prompt: 'consent',
+                },
             }
         });
+        
         if (error) throw error;
     } catch (error: any) {
         console.error("Google Login Error:", error);
-        setErrorMsg("Error al conectar con Google.");
+        setErrorMsg("Error al conectar con Google. Revisa la consola para más detalles.");
+        setIsLoading(false);
     }
   };
 
@@ -88,10 +98,15 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
 
             <button 
                 type="button"
+                disabled={isLoading}
                 onClick={handleGoogleLogin}
-                className="w-full bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 text-slate-700 dark:text-white font-bold h-14 rounded-xl flex items-center justify-center gap-3 transition-all mb-4 shadow-sm active:scale-[0.98]"
+                className="w-full bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 text-slate-700 dark:text-white font-bold h-14 rounded-xl flex items-center justify-center gap-3 transition-all mb-4 shadow-sm active:scale-[0.98] disabled:opacity-50"
             >
-                <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-6 h-6" />
+                {isLoading && !email ? (
+                    <span className="size-5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+                ) : (
+                    <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-6 h-6" />
+                )}
                 <span>Continuar con Google</span>
             </button>
 
@@ -148,7 +163,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                     disabled={isLoading}
                     className="w-full bg-primary hover:bg-primary-dark active:scale-[0.98] transition-all text-background-dark font-bold text-lg h-14 rounded-xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(25,230,94,0.3)] disabled:opacity-70 disabled:cursor-not-allowed mt-4"
                 >
-                    {isLoading ? (
+                    {isLoading && email ? (
                         <span className="size-5 border-2 border-background-dark border-t-transparent rounded-full animate-spin"></span>
                     ) : (
                         <>
