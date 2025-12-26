@@ -11,7 +11,7 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const DIST_PATH = path.join(__dirname, 'dist');
 
-// Middleware para servir archivos estáticos con tipos MIME estrictos
+// Middleware para servir archivos estáticos compilados con tipos MIME correctos
 app.use(express.static(DIST_PATH, {
     maxAge: '1d',
     setHeaders: (res, filePath) => {
@@ -26,19 +26,22 @@ app.use(express.static(DIST_PATH, {
 
 app.get('/health', (req, res) => res.status(200).send('OK'));
 
-// Fallback SPA: Redirigir todas las rutas al index.html de la carpeta DIST
+// Fallback para Single Page Application (SPA)
 app.get('*', (req, res) => {
-  // Prevenir bucles de peticiones a archivos fuente
+  // BLOQUEO CRÍTICO: Si la URL termina en extensiones de código fuente, devolver 404 real
+  // Esto evita que el navegador intente cargar "/index.tsx"
   if (req.path.match(/\.(tsx|ts|jsx|map)$/)) {
     return res.status(404).send('Not Found');
   }
 
+  // SIEMPRE servir el index.html de la carpeta 'dist' (el compilado)
   const indexPath = path.join(DIST_PATH, 'index.html');
+  
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {
-    // Si no existe dist/index.html, el build no se ha ejecutado correctamente
-    res.status(500).send("Error: El bundle de producción no fue encontrado. Verifica el proceso de build.");
+    // Si no existe dist/index.html, el servidor está mal configurado o no hay build
+    res.status(500).send("Error de servidor: No se encontró el bundle de producción. Ejecuta 'npm run build' antes de iniciar.");
   }
 });
 

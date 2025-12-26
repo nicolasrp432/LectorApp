@@ -9,6 +9,7 @@ import { PRACTICE_LIBRARY } from './constants';
 import Welcome from './pages/Welcome';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ResetPassword from './pages/ResetPassword';
 import AssessmentIntro from './pages/AssessmentIntro';
 import AssessmentReading from './pages/AssessmentReading';
 import AssessmentQuiz from './pages/AssessmentQuiz';
@@ -36,6 +37,19 @@ const MainLayout: React.FC = () => {
   const [assessmentData, setAssessmentData] = useState({wpm: 0, comprehension: 0});
   const [newAchievement, setNewAchievement] = useState<Achievement | null>(null);
 
+  // Manejar el cambio de ruta por URL (necesario para el reset de password)
+  useEffect(() => {
+    const handleUrlChange = () => {
+      const path = window.location.pathname;
+      if (path === '/reset-password') {
+        setCurrentRoute(AppRoute.RESET_PASSWORD);
+      }
+    };
+    handleUrlChange();
+    window.addEventListener('popstate', handleUrlChange);
+    return () => window.removeEventListener('popstate', handleUrlChange);
+  }, []);
+
   useEffect(() => {
     if (user?.preferences?.themeColor) {
         document.documentElement.style.setProperty('--primary', user.preferences.themeColor);
@@ -47,6 +61,8 @@ const MainLayout: React.FC = () => {
   const navigate = (route: AppRoute) => {
       setCurrentRoute(route);
       window.scrollTo(0,0);
+      // Actualizar URL sin recargar para soportar ruteo directo
+      window.history.pushState({}, '', `/${route === AppRoute.WELCOME ? '' : route}`);
   };
 
   useEffect(() => {
@@ -57,9 +73,14 @@ const MainLayout: React.FC = () => {
   }, [user, loading]);
 
   useEffect(() => {
-      // Si NO está cargando, NO hay usuario y NO estamos en una ruta pública -> WELCOME
-      // Incluimos una validación para evitar que el hash de Google OAuth active esto prematuramente
-      const isPublicRoute = [AppRoute.WELCOME, AppRoute.LOGIN, AppRoute.REGISTER].includes(currentRoute) || currentRoute.startsWith('assessment');
+      // Rutas públicas
+      const isPublicRoute = [
+        AppRoute.WELCOME, 
+        AppRoute.LOGIN, 
+        AppRoute.REGISTER, 
+        AppRoute.RESET_PASSWORD
+      ].includes(currentRoute) || currentRoute.startsWith('assessment');
+      
       const isProcessingAuth = window.location.hash.includes('access_token');
 
       if (!loading && !user && !isPublicRoute && !isProcessingAuth) {
@@ -89,6 +110,7 @@ const MainLayout: React.FC = () => {
       case AppRoute.WELCOME: return <Welcome onNavigate={navigate} />;
       case AppRoute.LOGIN: return <Login onLogin={() => {}} onNavigate={navigate} />;
       case AppRoute.REGISTER: return <Register onRegister={() => {}} onNavigate={navigate} />;
+      case AppRoute.RESET_PASSWORD: return <ResetPassword onNavigate={navigate} />;
       
       case AppRoute.ASSESSMENT_INTRO: return <AssessmentIntro onNavigate={navigate} onBack={() => user ? navigate(AppRoute.SETTINGS) : navigate(AppRoute.WELCOME)} />;
       case AppRoute.ASSESSMENT_READING: return <AssessmentReading onFinishReading={(wpm) => { setAssessmentData(p => ({...p, wpm})); navigate(AppRoute.ASSESSMENT_QUIZ); }} onBack={() => navigate(AppRoute.ASSESSMENT_INTRO)} />;

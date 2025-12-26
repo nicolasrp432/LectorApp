@@ -24,15 +24,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
 
     try {
         const { error } = await supabase.auth.signInWithPassword({
-            email,
+            email: email.trim(),
             password,
         });
 
         if (error) {
-            // Detección de usuario de Google sin contraseña
             if (error.message.toLowerCase().includes('invalid login credentials')) {
-                // Supabase no nos dice directamente si es Google por seguridad, 
-                // pero podemos inferir y dar una respuesta UX orientativa.
                 throw new Error("Credenciales inválidas. Si usaste Google, inicia sesión con el botón superior o usa 'Olvidaste tu contraseña' para crear una.");
             }
             if (error.message.includes('Email not confirmed')) {
@@ -57,10 +54,17 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
     }
     setIsLoading(true);
     try {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: window.location.origin,
+        // Redirigimos explícitamente a la nueva ruta /reset-password
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+            redirectTo: `${window.location.origin}/reset-password`,
         });
-        if (error) throw error;
+        
+        if (error) {
+            if (error.status === 429) throw new Error("Has solicitado demasiados correos. Espera unos minutos.");
+            if (error.status === 500) throw new Error("Error interno del servidor de correo. Por favor, contacta con soporte o intenta más tarde.");
+            throw error;
+        }
+        
         setResetSent(true);
         setErrorMsg("Te hemos enviado un enlace. Úsalo para establecer tu contraseña y acceder también con email.");
     } catch (error: any) {

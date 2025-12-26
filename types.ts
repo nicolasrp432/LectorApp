@@ -162,6 +162,7 @@ export enum AppRoute {
   WELCOME = 'welcome',
   LOGIN = 'login',
   REGISTER = 'register',
+  RESET_PASSWORD = 'reset-password',
   ASSESSMENT_INTRO = 'assessment_intro',
   ASSESSMENT_READING = 'assessment_reading',
   ASSESSMENT_QUIZ = 'assessment_quiz',
