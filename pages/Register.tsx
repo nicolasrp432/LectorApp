@@ -28,41 +28,50 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
     setIsLoading(true);
 
     try {
-        // Supabase signUp: Si el email ya existe y Confirm email está ON, 
-        // a veces no devuelve error para evitar enumeración de emails.
+        // Registro en Supabase
         const { data, error } = await supabase.auth.signUp({
-            email,
+            email: email.trim(),
             password,
             options: {
                 emailRedirectTo: window.location.origin,
                 data: {
-                    display_name: name,
+                    display_name: name.trim(),
                 }
             }
         });
 
         if (error) {
-            if (error.status === 400 && error.message.includes('already registered')) {
-                throw new Error("Este correo ya está registrado. Intenta iniciar sesión.");
+            // Detección de email ya registrado (Supabase error 400)
+            if (error.status === 400 && error.message.toLowerCase().includes('already registered')) {
+                throw new Error("Este correo ya está registrado. Si olvidaste tu contraseña, intenta recuperarla o inicia sesión con Google.");
             }
             throw error;
         }
 
-        // Si el usuario se crea pero requiere confirmación (session es null)
-        if (data.user && !data.session) {
-            setShowSuccess(true);
-            return;
-        }
+        // Supabase puede devolver un usuario pero sin sesión si la confirmación de email está activa
+        if (data.user) {
+            // Si el usuario existe pero no tiene identidades confirmadas, Supabase a veces no devuelve error 
+            // pero el array de identidades indica si es nuevo o no.
+            const isNewUser = data.user.identities && data.user.identities.length > 0;
+            
+            if (!isNewUser) {
+                // Si no hay identidades nuevas, es que el email ya existía (Supabase protección de privacidad)
+                throw new Error("Este correo ya está registrado en nuestra base de datos. Inicia sesión directamente.");
+            }
 
-        // Si no requiere confirmación o ya se logueó
-        if (data.user && data.session) {
-             onRegister(name, email);
-             onNavigate(AppRoute.DASHBOARD);
+            if (!data.session) {
+                // Flujo normal: Registro exitoso, esperando confirmación de email
+                setShowSuccess(true);
+            } else {
+                // Confirmación de email desactivada: Entra directo
+                onRegister(name, email);
+                onNavigate(AppRoute.DASHBOARD);
+            }
         }
 
     } catch (error: any) {
-        console.error("Register Error:", error);
-        setErrorMsg(error.message || 'Error al registrarse. Intenta de nuevo.');
+        console.error("Error en el registro:", error);
+        setErrorMsg(error.message || 'Error al procesar el registro. Verifica tu conexión.');
     } finally {
         setIsLoading(false);
     }
@@ -93,14 +102,14 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
             </div>
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">¡Verifica tu Email!</h1>
             <p className="text-slate-600 dark:text-gray-300 text-lg mb-8 max-w-sm leading-relaxed">
-                Hemos enviado un correo a <br/><b>{email}</b>.<br/><br/>
-                Confirma tu cuenta para poder acceder a tu entrenamiento.
+                Hemos enviado un enlace de activación a:<br/><b>{email}</b>.<br/><br/>
+                Debes confirmar tu cuenta antes de poder iniciar sesión. Revisa también tu carpeta de spam.
             </p>
             <button 
                 onClick={() => onNavigate(AppRoute.LOGIN)}
-                className="w-full max-w-sm bg-primary hover:bg-primary-dark text-background-dark font-bold text-lg h-14 rounded-xl shadow-lg"
+                className="w-full max-w-sm bg-primary hover:bg-primary-dark text-background-dark font-bold text-lg h-14 rounded-xl shadow-lg transition-transform active:scale-95"
             >
-                Volver al Inicio
+                Ir al Inicio de Sesión
             </button>
         </div>
       );
@@ -155,7 +164,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
                         required
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white outline-none text-sm"
+                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white outline-none text-sm focus:ring-2 focus:ring-primary/30"
                         placeholder="Tu nombre"
                     />
                 </div>
@@ -166,7 +175,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white outline-none text-sm"
+                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white outline-none text-sm focus:ring-2 focus:ring-primary/30"
                         placeholder="usuario@ejemplo.com"
                     />
                 </div>
@@ -178,7 +187,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
                         minLength={6}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white outline-none text-sm"
+                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white outline-none text-sm focus:ring-2 focus:ring-primary/30"
                         placeholder="Mínimo 6 caracteres"
                     />
                 </div>

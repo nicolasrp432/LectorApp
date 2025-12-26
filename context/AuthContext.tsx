@@ -41,11 +41,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isSyncing.current = true;
     
     try {
-      console.log(`[AuthSystem] Sincronizando perfil: ${email}`);
+      console.log(`[AuthSystem] Cargando datos para: ${email}`);
       let profile = await dbService.getUserProfile(userId);
       
       if (!profile) {
-        console.log("[AuthSystem] Perfil no encontrado, iniciando auto-creación...");
+        console.log("[AuthSystem] Perfil de base de datos no encontrado. Creando...");
         const initialStats: UserStats = { streak: 1, tel: 200, xp: 100, lastActiveDate: Date.now() };
         const newUser: User = {
           id: userId,
@@ -82,7 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setNotifications(MOCK_NOTIFICATIONS);
       setUser(profile);
     } catch (err) {
-      console.error("[AuthSystem] Error en sincronización:", err);
+      console.error("[AuthSystem] Error cargando datos de usuario:", err);
     } finally {
       isSyncing.current = false;
       setLoading(false);
@@ -90,29 +90,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
-    // Escuchar cambios de autenticación
+    // Escuchar eventos de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`[SupabaseAuth] Evento: ${event}`);
+      console.log(`[SupabaseAuth] Evento detectado: ${event}`);
       
       if (session?.user) {
+        // Solo cargar si no tenemos usuario o el ID cambió
         await loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
       } else {
-        // Si no hay sesión, comprobar si estamos volviendo de un login OAuth (Google)
-        const isOAuthRedirect = window.location.hash.includes('access_token');
-        if (!isOAuthRedirect) {
+        // Si no hay sesión, limpiar estado a menos que estemos procesando un login de Google
+        const isOAuthFlow = window.location.hash.includes('access_token');
+        if (!isOAuthFlow) {
           setUser(null);
           setLoading(false);
         }
       }
     });
 
-    // Sesión inicial
+    // Sesión persistente inicial
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
       } else {
-        const isOAuthRedirect = window.location.hash.includes('access_token');
-        if (!isOAuthRedirect) setLoading(false);
+        const isOAuthFlow = window.location.hash.includes('access_token');
+        if (!isOAuthFlow) setLoading(false);
       }
     });
 
