@@ -29,11 +29,14 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
         });
 
         if (error) {
+            // Detección de usuario de Google sin contraseña
+            if (error.message.toLowerCase().includes('invalid login credentials')) {
+                // Supabase no nos dice directamente si es Google por seguridad, 
+                // pero podemos inferir y dar una respuesta UX orientativa.
+                throw new Error("Credenciales inválidas. Si usaste Google, inicia sesión con el botón superior o usa 'Olvidaste tu contraseña' para crear una.");
+            }
             if (error.message.includes('Email not confirmed')) {
                 throw new Error("Debes confirmar tu email antes de entrar. Revisa tu bandeja de entrada.");
-            }
-            if (error.message.toLowerCase().includes('invalid login')) {
-                throw new Error("Credenciales incorrectas. Revisa tu email y contraseña.");
             }
             throw error;
         }
@@ -49,7 +52,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
 
   const handleForgotPassword = async () => {
     if (!email) {
-        setErrorMsg("Introduce tu email para enviarte un enlace de recuperación.");
+        setErrorMsg("Introduce tu email para enviarte un enlace. Este enlace te permitirá crear una contraseña incluso si usas Google.");
         return;
     }
     setIsLoading(true);
@@ -59,7 +62,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
         });
         if (error) throw error;
         setResetSent(true);
-        setErrorMsg("Te hemos enviado un enlace de recuperación.");
+        setErrorMsg("Te hemos enviado un enlace. Úsalo para establecer tu contraseña y acceder también con email.");
     } catch (error: any) {
         setErrorMsg(error.message);
     } finally {
@@ -79,6 +82,11 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
         setErrorMsg("Error al conectar con Google.");
         setIsLoading(false);
     }
+  };
+
+  const handleGuest = () => {
+    loginAsGuest();
+    onNavigate(AppRoute.DASHBOARD);
   };
 
   return (
@@ -118,7 +126,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
 
             <button 
                 type="button"
-                onClick={() => { loginAsGuest(); onNavigate(AppRoute.DASHBOARD); }}
+                onClick={handleGuest}
                 className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-500 text-[10px] font-bold h-10 rounded-xl mb-4 transition-all uppercase tracking-widest border-dashed"
             >
                 Entrar como Invitado
@@ -149,7 +157,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                 <div className="space-y-1">
                     <div className="flex justify-between items-center">
                         <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400 ml-1">Contraseña</label>
-                        <button type="button" onClick={handleForgotPassword} className="text-[10px] text-primary font-bold hover:underline">¿Olvidaste?</button>
+                        <button type="button" onClick={handleForgotPassword} className="text-[10px] text-primary font-bold hover:underline decoration-primary">¿Olvidaste o quieres crear una?</button>
                     </div>
                     <input 
                         type="password" 

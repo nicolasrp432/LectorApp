@@ -28,7 +28,6 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
     setIsLoading(true);
 
     try {
-        // Registro en Supabase
         const { data, error } = await supabase.auth.signUp({
             email: email.trim(),
             password,
@@ -41,29 +40,21 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
         });
 
         if (error) {
-            // Detección de email ya registrado (Supabase error 400)
             if (error.status === 400 && error.message.toLowerCase().includes('already registered')) {
-                throw new Error("Este correo ya está registrado. Si olvidaste tu contraseña, intenta recuperarla o inicia sesión con Google.");
+                throw new Error("Este correo ya está registrado. Si usaste Google, inicia sesión directamente o usa 'Olvidaste tu contraseña' para crear una.");
             }
             throw error;
         }
 
-        // Supabase puede devolver un usuario pero sin sesión si la confirmación de email está activa
         if (data.user) {
-            // Si el usuario existe pero no tiene identidades confirmadas, Supabase a veces no devuelve error 
-            // pero el array de identidades indica si es nuevo o no.
             const isNewUser = data.user.identities && data.user.identities.length > 0;
-            
             if (!isNewUser) {
-                // Si no hay identidades nuevas, es que el email ya existía (Supabase protección de privacidad)
-                throw new Error("Este correo ya está registrado en nuestra base de datos. Inicia sesión directamente.");
+                throw new Error("Este correo ya está registrado con Google. Por favor, inicia sesión con Google o crea una contraseña vía 'Olvidaste tu contraseña'.");
             }
 
             if (!data.session) {
-                // Flujo normal: Registro exitoso, esperando confirmación de email
                 setShowSuccess(true);
             } else {
-                // Confirmación de email desactivada: Entra directo
                 onRegister(name, email);
                 onNavigate(AppRoute.DASHBOARD);
             }
@@ -71,7 +62,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
 
     } catch (error: any) {
         console.error("Error en el registro:", error);
-        setErrorMsg(error.message || 'Error al procesar el registro. Verifica tu conexión.');
+        setErrorMsg(error.message || 'Error al procesar el registro.');
     } finally {
         setIsLoading(false);
     }
@@ -102,8 +93,8 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
             </div>
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">¡Verifica tu Email!</h1>
             <p className="text-slate-600 dark:text-gray-300 text-lg mb-8 max-w-sm leading-relaxed">
-                Hemos enviado un enlace de activación a:<br/><b>{email}</b>.<br/><br/>
-                Debes confirmar tu cuenta antes de poder iniciar sesión. Revisa también tu carpeta de spam.
+                Hemos enviado un enlace a:<br/><b>{email}</b>.<br/><br/>
+                Confirma tu cuenta para acceder. Revisa también tu carpeta de spam.
             </p>
             <button 
                 onClick={() => onNavigate(AppRoute.LOGIN)}

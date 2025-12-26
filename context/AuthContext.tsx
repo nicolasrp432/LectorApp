@@ -35,17 +35,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [notifications, setNotifications] = useState<Notification[]>([]);
   
   const isSyncing = useRef(false);
+  const isGuest = useRef(false);
 
   const loadUserData = useCallback(async (userId: string, email: string, metadata?: any) => {
     if (isSyncing.current) return;
     isSyncing.current = true;
     
     try {
-      console.log(`[AuthSystem] Cargando datos para: ${email}`);
+      console.log(`[AuthSystem] Sincronizando: ${email}`);
       let profile = await dbService.getUserProfile(userId);
       
       if (!profile) {
-        console.log("[AuthSystem] Perfil de base de datos no encontrado. Creando...");
         const initialStats: UserStats = { streak: 1, tel: 200, xp: 100, lastActiveDate: Date.now() };
         const newUser: User = {
           id: userId,
@@ -82,7 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setNotifications(MOCK_NOTIFICATIONS);
       setUser(profile);
     } catch (err) {
-      console.error("[AuthSystem] Error cargando datos de usuario:", err);
+      console.error("[AuthSystem] Error en carga:", err);
     } finally {
       isSyncing.current = false;
       setLoading(false);
@@ -90,24 +90,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
-    // Escuchar eventos de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`[SupabaseAuth] Evento detectado: ${event}`);
+      console.log(`[SupabaseAuth] Evento: ${event}`);
       
       if (session?.user) {
-        // Solo cargar si no tenemos usuario o el ID cambió
+        isGuest.current = false;
         await loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
       } else {
-        // Si no hay sesión, limpiar estado a menos que estemos procesando un login de Google
-        const isOAuthFlow = window.location.hash.includes('access_token');
-        if (!isOAuthFlow) {
-          setUser(null);
-          setLoading(false);
+        // Solo limpiar si NO estamos en modo invitado
+        if (!isGuest.current) {
+          const isOAuthFlow = window.location.hash.includes('access_token');
+          if (!isOAuthFlow) {
+            setUser(null);
+            setLoading(false);
+          }
         }
       }
     });
 
-    // Sesión persistente inicial
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
@@ -121,6 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [loadUserData]);
 
   const loginAsGuest = () => {
+    isGuest.current = true;
     setUser({
         id: 'guest',
         name: 'Explorador Invitado',
@@ -138,6 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     setLoading(true);
+    isGuest.current = false;
     await supabase.auth.signOut();
     setUser(null);
     setLoading(false);

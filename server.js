@@ -11,7 +11,7 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const DIST_PATH = path.join(__dirname, 'dist');
 
-// Middleware para servir archivos estáticos compilados con tipos MIME correctos
+// Middleware para servir archivos estáticos con tipos MIME estrictos
 app.use(express.static(DIST_PATH, {
     maxAge: '1d',
     setHeaders: (res, filePath) => {
@@ -26,24 +26,22 @@ app.use(express.static(DIST_PATH, {
 
 app.get('/health', (req, res) => res.status(200).send('OK'));
 
-// Fallback para Single Page Application (SPA)
+// Fallback SPA: Redirigir todas las rutas al index.html de la carpeta DIST
 app.get('*', (req, res) => {
-  // BLOQUEO CRÍTICO: Evitar que el navegador pida archivos de código fuente en producción
+  // Prevenir bucles de peticiones a archivos fuente
   if (req.path.match(/\.(tsx|ts|jsx|map)$/)) {
     return res.status(404).send('Not Found');
   }
 
-  // SIEMPRE servir el index.html que está DENTRO de la carpeta 'dist'
   const indexPath = path.join(DIST_PATH, 'index.html');
-  
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {
-    // Si no existe dist/index.html, el proceso de build falló o no se ejecutó
-    res.status(500).send("Error de despliegue: El bundle de producción no existe. Ejecuta 'npm run build'.");
+    // Si no existe dist/index.html, el build no se ha ejecutado correctamente
+    res.status(500).send("Error: El bundle de producción no fue encontrado. Verifica el proceso de build.");
   }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor de Producción Lector activo en puerto ${PORT}`);
+  console.log(`Servidor Lector estable en puerto ${PORT}`);
 });
