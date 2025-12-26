@@ -12,51 +12,62 @@ export const dbService = {
                 .eq('id', userId)
                 .maybeSingle();
                 
-            if (error || !data) return null;
+            if (error) {
+                console.error("[DB] Error consultando perfil:", error.message);
+                return null;
+            }
+            if (!data) return null;
 
             return {
                 id: data.id,
-                name: data.name,
-                email: data.email,
-                avatarUrl: data.avatar_url,
-                stats: data.stats,
-                preferences: data.preferences,
+                name: data.name || 'Usuario',
+                email: data.email || '',
+                avatarUrl: data.avatar_url || '',
+                stats: data.stats || { streak: 1, tel: 200, xp: 100, lastActiveDate: Date.now() },
+                preferences: data.preferences || { dailyGoalMinutes: 15, targetWPM: 300, difficultyLevel: 'Básico', notificationsEnabled: true, soundEnabled: true },
                 achievements: data.achievements || [],
-                joinedDate: new Date(data.joined_at).getTime(),
+                joinedDate: data.joined_at ? new Date(data.joined_at).getTime() : Date.now(),
                 baselineWPM: 200, 
-                level: data.level || 'Estudiante'
+                level: data.level || 'Iniciado'
             };
         } catch (e) {
+            console.error("[DB] Error de excepción en getUserProfile:", e);
             return null;
         }
     },
 
     async createUserProfile(user: User): Promise<void> {
-        // Usamos upsert para manejar casos donde el usuario ya pudiera existir parcialmente
-        const { error } = await supabase.from('profiles').upsert({
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            avatar_url: user.avatarUrl,
-            stats: user.stats,
-            preferences: user.preferences,
-            achievements: user.achievements || [],
-            level: user.level,
-            joined_at: new Date().toISOString()
-        }, { onConflict: 'id' });
+        try {
+            const { error } = await supabase.from('profiles').upsert({
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                avatar_url: user.avatarUrl,
+                stats: user.stats,
+                preferences: user.preferences,
+                achievements: user.achievements || [],
+                level: user.level || 'Iniciado',
+                joined_at: new Date().toISOString()
+            }, { onConflict: 'id' });
 
-        if (error) {
-            console.error("Error al crear perfil en DB:", error.message);
-            throw error;
+            if (error) throw error;
+        } catch (error: any) {
+            console.error("[DB] Fallo crítico al crear perfil:", error.message);
+            // Intentamos una inserción simplificada si la completa falla por esquema
+            await supabase.from('profiles').insert({
+                id: user.id,
+                email: user.email,
+                name: user.name
+            }).select().catch(() => {});
         }
     },
 
     async updateUserStats(userId: string, stats: UserStats): Promise<void> {
-        await supabase.from('profiles').update({ stats }).eq('id', userId);
+        await supabase.from('profiles').update({ stats }).eq('id', userId).catch(() => {});
     },
 
     async updateUserPreferences(userId: string, preferences: UserPreferences): Promise<void> {
-        await supabase.from('profiles').update({ preferences }).eq('id', userId);
+        await supabase.from('profiles').update({ preferences }).eq('id', userId).catch(() => {});
     },
 
     // --- Flashcards ---
@@ -92,10 +103,9 @@ export const dbService = {
             repetition: c.repetition,
             efactor: c.efactor,
             due_date: c.dueDate,
-            // Corrected: Use camelCase masteryLevel from Flashcard type
             mastery_level: c.masteryLevel || 0
         }));
-        await supabase.from('flashcards').insert(dbCards);
+        await supabase.from('flashcards').insert(dbCards).catch(() => {});
     },
 
     async updateFlashcard(card: Flashcard): Promise<void> {
@@ -104,10 +114,9 @@ export const dbService = {
             repetition: card.repetition,
             efactor: card.efactor,
             due_date: card.dueDate,
-            // Corrected: Use camelCase properties lastReviewed and masteryLevel from Flashcard type
             last_reviewed: card.lastReviewed,
             mastery_level: card.masteryLevel
-        }).eq('id', card.id);
+        }).eq('id', card.id).catch(() => {});
     },
 
     // --- Books ---
@@ -180,7 +189,7 @@ export const dbService = {
                 telCalculated: log.telCalculated,
                 comprehensionRate: log.comprehensionRate
             }
-        });
+        }).catch(() => {});
     },
 
     // --- Memory Palaces ---
@@ -209,6 +218,6 @@ export const dbService = {
             method: palace.method,
             description: palace.description,
             items: palace.items
-        });
+        }).catch(() => {});
     }
 };

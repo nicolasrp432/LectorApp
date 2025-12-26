@@ -34,57 +34,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   
-  const isSyncing = useRef(false);
+  const isInitializing = useRef(false);
 
   const loadUserData = useCallback(async (userId: string, email: string, metadata?: any) => {
-    // Evitar múltiples cargas simultáneas del mismo usuario
-    if (isSyncing.current && user?.id === userId) return;
-    isSyncing.current = true;
+    if (isInitializing.current && user?.id === userId) return;
+    isInitializing.current = true;
     
     try {
-      setLoading(true);
-      console.log(`[AuthSystem] Iniciando sincronización profunda: ${email}`);
-      
+      console.log(`[AuthSystem] Sincronizando: ${email}`);
       let profile = await dbService.getUserProfile(userId);
       
       if (!profile) {
-        console.log("[AuthSystem] Perfil no encontrado, ejecutando provisionamiento automático...");
-        
+        console.warn("[AuthSystem] Perfil no encontrado, creando...");
         const savedAssessment = localStorage.getItem('pending_assessment');
         const assessmentData = savedAssessment ? JSON.parse(savedAssessment) : null;
 
-        const calculateLevel = (tel: number) => {
-          if (tel > 400) return "Maestro Cognitivo";
-          if (tel > 250) return "Lector Ágil";
-          if (tel > 150) return "Lector Promedio";
-          return "Iniciado";
-        };
-
         const initialStats: UserStats = { 
-          streak: 1, 
-          tel: assessmentData?.tel || 200, 
-          xp: 100, 
-          lastActiveDate: Date.now(), 
-          maxSchulteLevel: 1, 
-          maxWordSpan: 3 
+          streak: 1, tel: assessmentData?.tel || 200, xp: 100, 
+          lastActiveDate: Date.now(), maxSchulteLevel: 1, maxWordSpan: 3 
         };
-
-        const displayName = metadata?.full_name || metadata?.display_name || email.split('@')[0];
-        const avatarUrl = metadata?.avatar_url || AVATARS[0];
 
         const newUser: User = {
           id: userId,
-          name: displayName,
+          name: metadata?.full_name || metadata?.display_name || email.split('@')[0],
           email: email,
-          avatarUrl: avatarUrl,
+          avatarUrl: metadata?.avatar_url || AVATARS[0],
           stats: initialStats,
           joinedDate: Date.now(),
           baselineWPM: assessmentData?.wpm || 200,
-          level: calculateLevel(initialStats.tel),
+          level: "Iniciado",
           preferences: {
             dailyGoalMinutes: 15,
-            targetWPM: Math.max(300, (assessmentData?.wpm || 200) + 100),
-            difficultyLevel: assessmentData?.tel > 250 ? 'Intermedio' : 'Básico',
+            targetWPM: 300,
+            difficultyLevel: 'Básico',
             notificationsEnabled: true,
             soundEnabled: true,
             unlockedRewards: []
@@ -94,60 +76,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         await dbService.createUserProfile(newUser);
         profile = newUser;
-        
-        if (assessmentData) {
-            await dbService.addReadingLog({
-                id: `init-${Date.now()}`,
-                userId: userId,
-                exerciseType: 'reading_session',
-                levelOrSpeed: assessmentData.wpm,
-                durationSeconds: 60,
-                wpmCalculated: assessmentData.wpm,
-                comprehensionRate: assessmentData.comprehension,
-                telCalculated: assessmentData.tel,
-                timestamp: Date.now()
-            });
-            localStorage.removeItem('pending_assessment');
-        }
       }
 
       if (profile) {
-        const [fetchedLogs, fetchedBooks, fetchedCards] = await Promise.all([
-          dbService.getReadingLogs(userId),
-          dbService.getUserBooks(userId),
-          dbService.getFlashcards(userId)
+        const [logs, userBooks, cards] = await Promise.all([
+          dbService.getReadingLogs(userId).catch(() => []),
+          dbService.getUserBooks(userId).catch(() => []),
+          dbService.getFlashcards(userId).catch(() => [])
         ]);
         
-        setReadingLogs(fetchedLogs);
-        setBooks(fetchedBooks.length > 0 ? fetchedBooks : SUGGESTED_BOOKS);
-        setFlashcards(fetchedCards);
+        setReadingLogs(logs);
+        setBooks(userBooks.length > 0 ? userBooks : SUGGESTED_BOOKS);
+        setFlashcards(cards);
         setNotifications(MOCK_NOTIFICATIONS);
         setUser(profile);
       }
     } catch (err) {
-      console.error("[AuthSystem] Error en la carga de perfil:", err);
+      console.error("[AuthSystem] Error crítico en sincronización:", err);
     } finally {
-      isSyncing.current = false;
+      isInitializing.current = false;
       setLoading(false);
     }
   }, [user?.id]);
 
   useEffect(() => {
-    // Escuchar cambios de estado
-    // onAuthStateChange maneja tanto la sesión inicial como los cambios (incluidos redirects OAuth)
+    // Escuchar cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`[SupabaseAuth] Evento detectado: ${event}`);
+      console.log(`[Supabase] Evento Auth: ${event}`);
       
       if (session?.user) {
-        // En cualquier evento con sesión válida, aseguramos que los datos se carguen antes de quitar loading
         await loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
       } else {
-        // Solo si NO hay sesión y NO estamos en medio de un flujo de autenticación, liberamos el loading
-        if (!window.location.hash.includes('access_token')) {
+        // Detectar si estamos en un proceso de redirect de Google (hash en la URL)
+        const hasAuthHash = window.location.hash.includes('access_token=');
+        if (!hasAuthHash) {
           setUser(null);
-          setBooks(SUGGESTED_BOOKS);
-          setReadingLogs([]);
-          setFlashcards([]);
+          setLoading(false);
+        }
+      }
+    });
+
+    // Verificación inicial de sesión
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
+      } else {
+        if (!window.location.hash.includes('access_token=')) {
           setLoading(false);
         }
       }
@@ -157,7 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [loadUserData]);
 
   const loginAsGuest = () => {
-    const guestUser: User = {
+    setUser({
         id: 'guest',
         name: 'Invitado',
         email: 'guest@lector.app',
@@ -168,9 +142,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         level: "Explorador",
         preferences: { dailyGoalMinutes: 15, targetWPM: 250, difficultyLevel: 'Básico', notificationsEnabled: false, soundEnabled: true, unlockedRewards: [] },
         achievements: []
-    };
-    setUser(guestUser);
-    setBooks(SUGGESTED_BOOKS);
+    });
+    setLoading(false);
+  };
+
+  const logout = async () => {
+    setLoading(true);
+    await supabase.auth.signOut();
+    setUser(null);
     setLoading(false);
   };
 
@@ -225,13 +204,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!user) return;
       if (reward.type === 'theme') await updateUser({ preferences: { ...user.preferences, themeColor: reward.value } });
       else if (reward.type === 'avatar') await updateUser({ avatarUrl: reward.value });
-  };
-
-  const logout = async () => {
-    setLoading(true);
-    await supabase.auth.signOut();
-    setUser(null);
-    setLoading(false);
   };
 
   return (

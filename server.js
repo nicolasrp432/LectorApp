@@ -11,35 +11,33 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const DIST_PATH = path.join(__dirname, 'dist');
 
-console.log(`Verificando directorio de activos en: ${DIST_PATH}`);
-if (fs.existsSync(DIST_PATH)) {
-    console.log("Directorio 'dist' detectado correctamente.");
-} else {
-    console.warn("ADVERTENCIA: Directorio 'dist' no encontrado. Asegúrate de ejecutar 'npm run build' primero.");
-}
-
-// Servir archivos estáticos primero (prioridad alta)
-app.use(express.static(DIST_PATH));
+// Middleware para servir archivos estáticos con tipos MIME correctos
+app.use(express.static(DIST_PATH, {
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.js')) {
+            res.setHeader('Content-Type', 'application/javascript');
+        }
+    }
+}));
 
 app.get('/health', (req, res) => res.status(200).send('OK'));
 
-// Solo aplicar el fallback de index.html para rutas que NO parecen ser archivos
-// Esto evita que las peticiones a archivos inexistentes devuelvan el HTML
+// Fallback para SPA: solo si no es un archivo estático
 app.get('*', (req, res) => {
-  // Si la ruta contiene un punto, probablemente sea un archivo (JS, CSS, IMG, etc.)
-  // Si no existe, devolvemos 404 real en lugar de index.html
-  if (req.path.includes('.')) {
-      return res.status(404).send('Archivo no encontrado');
+  // Si la petición pide un archivo .tsx o .ts directamente, es un error de configuración del cliente
+  // Respondemos 404 para evitar que cargue el index.html y genere errores de tipo MIME
+  if (req.path.match(/\.(tsx|ts|jsx)$/)) {
+      return res.status(404).send('Source file not served in production');
   }
 
   const indexPath = path.join(DIST_PATH, 'index.html');
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {
-    res.status(404).send("Aplicación no lista. Verifica el build.");
+    res.status(404).send("App not built. Run npm run build.");
   }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor de Lector escuchando en 0.0.0.0:${PORT}`);
+  console.log(`Lector Server running on port ${PORT}`);
 });
