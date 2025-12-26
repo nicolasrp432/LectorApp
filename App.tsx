@@ -50,13 +50,19 @@ const MainLayout: React.FC = () => {
   };
 
   useEffect(() => {
+      // Si el usuario se autentica o entra como invitado, y está en una pantalla de acceso, lo enviamos al dashboard
       if (!loading && user && (currentRoute === AppRoute.WELCOME || currentRoute === AppRoute.LOGIN || currentRoute === AppRoute.REGISTER)) {
           navigate(AppRoute.DASHBOARD);
       }
   }, [user, loading]);
 
   useEffect(() => {
-      if (!loading && !user && currentRoute !== AppRoute.LOGIN && currentRoute !== AppRoute.REGISTER && currentRoute !== AppRoute.WELCOME && !currentRoute.startsWith('assessment')) {
+      // Si NO está cargando, NO hay usuario y NO estamos en una ruta pública -> WELCOME
+      // Incluimos una validación para evitar que el hash de Google OAuth active esto prematuramente
+      const isPublicRoute = [AppRoute.WELCOME, AppRoute.LOGIN, AppRoute.REGISTER].includes(currentRoute) || currentRoute.startsWith('assessment');
+      const isProcessingAuth = window.location.hash.includes('access_token');
+
+      if (!loading && !user && !isPublicRoute && !isProcessingAuth) {
           navigate(AppRoute.WELCOME);
       }
   }, [user, loading, currentRoute]);
@@ -64,7 +70,10 @@ const MainLayout: React.FC = () => {
   if (loading) {
       return (
         <div className="flex h-screen w-full items-center justify-center bg-[#112116]">
-             <div className="size-16 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+             <div className="flex flex-col items-center gap-4">
+                 <div className="size-16 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+                 <p className="text-primary text-xs font-bold uppercase tracking-widest animate-pulse">Sincronizando Córtex...</p>
+             </div>
         </div>
       );
   }

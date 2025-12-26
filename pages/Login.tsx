@@ -29,8 +29,10 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
         });
 
         if (error) {
-            if (error.message.toLowerCase().includes('invalid login')) {
-                throw new Error("Credenciales inválidas. Si te registraste con Google, intenta entrar con el botón de Google o restablece tu contraseña.");
+            // Manejo profesional de errores de Supabase
+            if (error.message.toLowerCase().includes('invalid login') || error.status === 400) {
+                // Sugerencia dinámica basada en el error común de Google Auth
+                throw new Error("Credenciales inválidas. Si te registraste con Google, usa el botón de Google o restablece tu contraseña para crear una.");
             }
             throw error;
         }
@@ -46,7 +48,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
 
   const handleForgotPassword = async () => {
     if (!email) {
-        setErrorMsg("Por favor, introduce tu email primero para recuperar la contraseña.");
+        setErrorMsg("Por favor, introduce tu email primero para recuperar la contraseña o crear una nueva para tu cuenta de Google.");
         return;
     }
     setIsLoading(true);
@@ -56,7 +58,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
         });
         if (error) throw error;
         setResetSent(true);
-        setErrorMsg("Te hemos enviado un email para crear tu nueva contraseña.");
+        setErrorMsg("Te hemos enviado un enlace. Úsalo para crear tu contraseña (esto funciona también para cuentas creadas con Google).");
     } catch (error: any) {
         setErrorMsg(error.message);
     } finally {
@@ -75,7 +77,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
         setErrorMsg('');
         
         const redirectTo = window.location.origin;
-        console.log(`[Auth] Iniciando flujo Google OAuth. Redirect a: ${redirectTo}`);
+        console.log(`[Auth] Iniciando Google OAuth redirigiendo a: ${redirectTo}`);
 
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
@@ -118,9 +120,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
             {errorMsg && (
                 <div className={`mb-6 p-3 border rounded-xl text-sm text-center animate-in fade-in zoom-in-95 ${resetSent ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
                     {errorMsg}
-                    {!resetSent && errorMsg.includes('inválidas') && (
+                    {!resetSent && (errorMsg.includes('inválidas') || errorMsg.includes('contraseña')) && (
                         <div className="mt-2">
-                            <button onClick={handleForgotPassword} className="font-bold underline">¿Olvidaste tu contraseña?</button>
+                            <button onClick={handleForgotPassword} className="font-bold underline decoration-primary">¿Olvidaste tu contraseña o quieres crear una?</button>
                         </div>
                     )}
                 </div>
@@ -143,7 +145,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
             <button 
                 type="button"
                 onClick={handleGuestLogin}
-                className="w-full bg-white/5 hover:bg-white/10 border border-white/5 text-gray-500 text-[10px] font-bold h-10 rounded-xl mb-4 transition-all uppercase tracking-widest"
+                className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-500 text-[10px] font-bold h-10 rounded-xl mb-4 transition-all uppercase tracking-widest border-dashed"
             >
                 Entrar como Invitado
             </button>
@@ -209,12 +211,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                     )}
                 </button>
             </form>
-
-            <div className="mt-4 text-center">
-                <p className="text-sm text-gray-500">
-                    ¿No tienes cuenta? <span onClick={() => onNavigate(AppRoute.REGISTER)} className="text-primary font-bold cursor-pointer hover:underline">Regístrate</span>
-                </p>
-            </div>
         </div>
     </div>
   );
