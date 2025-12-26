@@ -29,10 +29,11 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
         });
 
         if (error) {
-            // Manejo profesional de errores de Supabase
-            if (error.message.toLowerCase().includes('invalid login') || error.status === 400) {
-                // Sugerencia dinámica basada en el error común de Google Auth
-                throw new Error("Credenciales inválidas. Si te registraste con Google, usa el botón de Google o restablece tu contraseña para crear una.");
+            if (error.message.includes('Email not confirmed')) {
+                throw new Error("Debes confirmar tu email antes de entrar. Revisa tu bandeja de entrada.");
+            }
+            if (error.message.toLowerCase().includes('invalid login')) {
+                throw new Error("Credenciales incorrectas. Revisa tu email y contraseña.");
             }
             throw error;
         }
@@ -40,7 +41,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
         onNavigate(AppRoute.DASHBOARD);
     } catch (error: any) {
         console.error("Login error", error);
-        setErrorMsg(error.message || 'Error al iniciar sesión');
+        setErrorMsg(error.message || 'Error al iniciar sesión.');
     } finally {
         setIsLoading(false);
     }
@@ -48,7 +49,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
 
   const handleForgotPassword = async () => {
     if (!email) {
-        setErrorMsg("Por favor, introduce tu email primero para recuperar la contraseña o crear una nueva para tu cuenta de Google.");
+        setErrorMsg("Introduce tu email para enviarte un enlace de recuperación.");
         return;
     }
     setIsLoading(true);
@@ -58,7 +59,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
         });
         if (error) throw error;
         setResetSent(true);
-        setErrorMsg("Te hemos enviado un enlace. Úsalo para crear tu contraseña (esto funciona también para cuentas creadas con Google).");
+        setErrorMsg("Te hemos enviado un enlace de recuperación.");
     } catch (error: any) {
         setErrorMsg(error.message);
     } finally {
@@ -66,33 +67,15 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
     }
   };
 
-  const handleGuestLogin = () => {
-      loginAsGuest();
-      onNavigate(AppRoute.DASHBOARD);
-  };
-
   const handleGoogleLogin = async () => {
     try {
         setIsLoading(true);
-        setErrorMsg('');
-        
-        const redirectTo = window.location.origin;
-        console.log(`[Auth] Iniciando Google OAuth redirigiendo a: ${redirectTo}`);
-
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
-            options: {
-                redirectTo: redirectTo,
-                queryParams: {
-                    access_type: 'offline',
-                    prompt: 'consent',
-                },
-            }
+            options: { redirectTo: window.location.origin }
         });
-        
         if (error) throw error;
     } catch (error: any) {
-        console.error("Google Login Error:", error);
         setErrorMsg("Error al conectar con Google.");
         setIsLoading(false);
     }
@@ -110,7 +93,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
 
         <div className="flex-1 flex flex-col justify-center px-8 z-10 max-w-md mx-auto w-full">
             <div className="mb-8 text-center">
-                <div className="inline-flex items-center justify-center size-16 rounded-2xl bg-gradient-to-br from-primary/20 to-transparent border border-primary/20 mb-6 shadow-lg shadow-primary/10">
+                <div className="inline-flex items-center justify-center size-16 rounded-2xl bg-gradient-to-br from-primary/20 to-transparent border border-primary/20 mb-6 shadow-lg">
                     <span className="material-symbols-outlined text-primary text-4xl">fingerprint</span>
                 </div>
                 <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Bienvenido</h1>
@@ -118,13 +101,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
             </div>
 
             {errorMsg && (
-                <div className={`mb-6 p-3 border rounded-xl text-sm text-center animate-in fade-in zoom-in-95 ${resetSent ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
+                <div className={`mb-6 p-3 border rounded-xl text-sm text-center animate-in fade-in ${resetSent ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
                     {errorMsg}
-                    {!resetSent && (errorMsg.includes('inválidas') || errorMsg.includes('contraseña')) && (
-                        <div className="mt-2">
-                            <button onClick={handleForgotPassword} className="font-bold underline decoration-primary">¿Olvidaste tu contraseña o quieres crear una?</button>
-                        </div>
-                    )}
                 </div>
             )}
 
@@ -132,29 +110,19 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                 type="button"
                 disabled={isLoading}
                 onClick={handleGoogleLogin}
-                className="w-full bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 text-slate-700 dark:text-white font-bold h-14 rounded-xl flex items-center justify-center gap-3 transition-all mb-4 shadow-sm active:scale-[0.98] disabled:opacity-50"
+                className="w-full bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 text-slate-700 dark:text-white font-bold h-14 rounded-xl flex items-center justify-center gap-3 mb-4 shadow-sm active:scale-[0.98] disabled:opacity-50 transition-all"
             >
-                {isLoading && !email ? (
-                    <span className="size-5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
-                ) : (
-                    <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-6 h-6" />
-                )}
+                <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-6 h-6" />
                 <span>Continuar con Google</span>
             </button>
 
             <button 
                 type="button"
-                onClick={handleGuestLogin}
+                onClick={() => { loginAsGuest(); onNavigate(AppRoute.DASHBOARD); }}
                 className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-500 text-[10px] font-bold h-10 rounded-xl mb-4 transition-all uppercase tracking-widest border-dashed"
             >
                 Entrar como Invitado
             </button>
-
-            <div className="text-center mb-6">
-                <p className="text-sm text-gray-500">
-                    ¿No tienes cuenta? <span onClick={() => onNavigate(AppRoute.REGISTER)} className="text-primary font-bold cursor-pointer hover:underline">Regístrate</span>
-                </p>
-            </div>
 
             <div className="relative mb-6">
                 <div className="absolute inset-0 flex items-center">
@@ -168,49 +136,49 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-500 ml-1">Email</label>
-                    <div className="relative group">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-400 group-focus-within:text-primary transition-colors text-[20px]">mail</span>
-                        <input 
-                            type="email" 
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 pl-12 pr-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none text-sm"
-                            placeholder="tu@email.com"
-                        />
-                    </div>
+                    <input 
+                        type="email" 
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white outline-none text-sm"
+                        placeholder="tu@email.com"
+                    />
                 </div>
 
                 <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400 ml-1">Contraseña</label>
-                    <div className="relative group">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-400 group-focus-within:text-primary transition-colors text-[20px]">lock</span>
-                        <input 
-                            type="password" 
-                            required
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 pl-12 pr-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none text-sm"
-                            placeholder="••••••••"
-                        />
+                    <div className="flex justify-between items-center">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400 ml-1">Contraseña</label>
+                        <button type="button" onClick={handleForgotPassword} className="text-[10px] text-primary font-bold hover:underline">¿Olvidaste?</button>
                     </div>
+                    <input 
+                        type="password" 
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white outline-none text-sm"
+                        placeholder="••••••••"
+                    />
                 </div>
 
                 <button 
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-primary hover:bg-primary-dark active:scale-[0.98] transition-all text-background-dark font-bold text-lg h-14 rounded-xl flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(25,230,94,0.3)] disabled:opacity-70 mt-2"
+                    className="w-full bg-primary hover:bg-primary-dark active:scale-[0.98] transition-all text-background-dark font-bold text-lg h-14 rounded-xl flex items-center justify-center gap-2 shadow-lg disabled:opacity-70 mt-2"
                 >
-                    {isLoading && email ? (
+                    {isLoading ? (
                         <span className="size-5 border-2 border-background-dark border-t-transparent rounded-full animate-spin"></span>
                     ) : (
-                        <>
-                            <span>Iniciar Sesión</span>
-                            <span className="material-symbols-outlined">arrow_forward</span>
-                        </>
+                        "Iniciar Sesión"
                     )}
                 </button>
             </form>
+
+            <div className="mt-6 text-center">
+                <p className="text-sm text-gray-500">
+                    ¿No tienes cuenta? <span onClick={() => onNavigate(AppRoute.REGISTER)} className="text-primary font-bold cursor-pointer hover:underline">Regístrate</span>
+                </p>
+            </div>
         </div>
     </div>
   );

@@ -28,11 +28,13 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
     setIsLoading(true);
 
     try {
+        // Supabase signUp: Si el email ya existe y Confirm email está ON, 
+        // a veces no devuelve error para evitar enumeración de emails.
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
             options: {
-                emailRedirectTo: window.location.origin, // Crucial para que Supabase envíe el email
+                emailRedirectTo: window.location.origin,
                 data: {
                     display_name: name,
                 }
@@ -40,19 +42,19 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
         });
 
         if (error) {
-            if (error.message.includes('security purposes') || error.status === 429) {
-                throw new Error("Por seguridad, espera unos minutos antes de intentar de nuevo.");
+            if (error.status === 400 && error.message.includes('already registered')) {
+                throw new Error("Este correo ya está registrado. Intenta iniciar sesión.");
             }
             throw error;
         }
 
-        // Si el email no está confirmado y no hay sesión, mostramos éxito
+        // Si el usuario se crea pero requiere confirmación (session es null)
         if (data.user && !data.session) {
             setShowSuccess(true);
             return;
         }
 
-        // Si ya hay sesión (confirmación deshabilitada en Supabase o auto-confirmado)
+        // Si no requiere confirmación o ya se logueó
         if (data.user && data.session) {
              onRegister(name, email);
              onNavigate(AppRoute.DASHBOARD);
@@ -60,7 +62,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
 
     } catch (error: any) {
         console.error("Register Error:", error);
-        setErrorMsg(error.message || 'Error al registrarse');
+        setErrorMsg(error.message || 'Error al registrarse. Intenta de nuevo.');
     } finally {
         setIsLoading(false);
     }
@@ -70,24 +72,14 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
     try {
         setIsLoading(true);
         setErrorMsg('');
-        
-        const redirectTo = window.location.origin;
-        console.log(`[Auth] Google Register: Redirigiendo a ${redirectTo}`);
-
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: redirectTo,
-                queryParams: {
-                    access_type: 'offline',
-                    prompt: 'consent',
-                },
+                redirectTo: window.location.origin,
             }
         });
-        
         if (error) throw error;
     } catch (error: any) {
-        console.error("Google Registration Error:", error);
         setErrorMsg("Error al conectar con Google.");
         setIsLoading(false);
     }
@@ -99,17 +91,16 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
             <div className="size-24 bg-green-500/10 rounded-full flex items-center justify-center mb-6">
                 <span className="material-symbols-outlined text-6xl text-green-500">mark_email_read</span>
             </div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">¡Casi listo!</h1>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">¡Verifica tu Email!</h1>
             <p className="text-slate-600 dark:text-gray-300 text-lg mb-8 max-w-sm leading-relaxed">
-                Hemos enviado un correo de confirmación a <br/><b>{email}</b>.
-                <br/><br/>
-                Por favor, verifica tu cuenta desde tu bandeja de entrada para poder acceder.
+                Hemos enviado un correo a <br/><b>{email}</b>.<br/><br/>
+                Confirma tu cuenta para poder acceder a tu entrenamiento.
             </p>
             <button 
                 onClick={() => onNavigate(AppRoute.LOGIN)}
-                className="w-full max-w-sm bg-primary hover:bg-primary-dark text-background-dark font-bold text-lg h-14 rounded-xl flex items-center justify-center gap-2 shadow-lg"
+                className="w-full max-w-sm bg-primary hover:bg-primary-dark text-background-dark font-bold text-lg h-14 rounded-xl shadow-lg"
             >
-                Ir a Iniciar Sesión
+                Volver al Inicio
             </button>
         </div>
       );
@@ -128,11 +119,11 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
         <div className="flex-1 flex flex-col justify-center px-8 z-10 max-w-md mx-auto w-full">
             <div className="mb-6 text-center">
                 <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Crear Cuenta</h1>
-                <p className="text-slate-500 dark:text-gray-400 text-sm">Guarda tus resultados y comienza tu entrenamiento.</p>
+                <p className="text-slate-500 dark:text-gray-400 text-sm">Empieza hoy tu camino a la supermemoria.</p>
             </div>
 
             {errorMsg && (
-                <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm text-center animate-in fade-in zoom-in-95">
+                <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm text-center animate-in fade-in">
                     {errorMsg}
                 </div>
             )}
@@ -143,11 +134,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
                 onClick={handleGoogleLogin}
                 className="w-full bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 text-slate-700 dark:text-white font-bold h-14 rounded-xl flex items-center justify-center gap-3 transition-all mb-6 shadow-sm active:scale-[0.98] disabled:opacity-50"
             >
-                {isLoading && !email && !name ? (
-                    <span className="size-5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
-                ) : (
-                    <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-6 h-6" />
-                )}
+                <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-6 h-6" />
                 <span>Registrarse con Google</span>
             </button>
 
@@ -168,7 +155,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
                         required
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none text-sm"
+                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white outline-none text-sm"
                         placeholder="Tu nombre"
                     />
                 </div>
@@ -179,7 +166,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none text-sm"
+                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white outline-none text-sm"
                         placeholder="usuario@ejemplo.com"
                     />
                 </div>
@@ -191,7 +178,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
                         minLength={6}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none text-sm"
+                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white outline-none text-sm"
                         placeholder="Mínimo 6 caracteres"
                     />
                 </div>
@@ -199,9 +186,9 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) => {
                 <button 
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-primary hover:bg-primary-dark active:scale-[0.98] transition-all text-background-dark font-bold text-lg h-14 rounded-xl flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(25,230,94,0.3)] mt-6"
+                    className="w-full bg-primary hover:bg-primary-dark active:scale-[0.98] transition-all text-background-dark font-bold text-lg h-14 rounded-xl flex items-center justify-center gap-2 shadow-lg mt-6"
                 >
-                    {isLoading && (email || name) ? (
+                    {isLoading ? (
                         <span className="size-5 border-2 border-background-dark border-t-transparent rounded-full animate-spin"></span>
                     ) : (
                         "Registrarse"
