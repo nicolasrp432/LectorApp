@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
-import { AppRoute } from '../types';
-import { supabase } from '../utils/supabase';
-import { useToast } from '../context/ToastContext';
+import { AppRoute } from '../types.ts';
+import { supabase } from '../utils/supabase.ts';
+import { useToast } from '../context/ToastContext.tsx';
 
 interface ResetPasswordProps {
   onNavigate: (route: AppRoute) => void;

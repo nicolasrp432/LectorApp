@@ -1,5 +1,5 @@
 import React from 'react';
-import { AppRoute } from '../types';
+import { AppRoute } from '../types.ts';
 
 interface BottomNavProps {
   currentRoute: AppRoute;

@@ -1,15 +1,14 @@
 
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Handle ESM/CJS interop: pdfjs-dist via esm.sh often puts exports on the 'default' property
+// Handle ESM/CJS interop
 // @ts-ignore
 const pdfjs = pdfjsLib.default ?? pdfjsLib;
 
-// Sincronización de versiones para evitar el error de mismatch
-const PDF_JS_VERSION = '5.4.449';
+const PDF_JS_VERSION = '4.4.168';
 
 if (pdfjs.GlobalWorkerOptions) {
-    pdfjs.GlobalWorkerOptions.workerSrc = `https://esm.sh/pdfjs-dist@${PDF_JS_VERSION}/build/pdf.worker.min.js`;
+    pdfjs.GlobalWorkerOptions.workerSrc = `https://esm.sh/pdfjs-dist@${PDF_JS_VERSION}/build/pdf.worker.min.mjs`;
 }
 
 export const extractTextFromPdf = async (file: File): Promise<string> => {
@@ -20,8 +19,6 @@ export const extractTextFromPdf = async (file: File): Promise<string> => {
     
     let fullText = '';
     const numPages = pdf.numPages;
-
-    // Límite de seguridad para el MVP
     const maxPages = Math.min(numPages, 20);
 
     for (let i = 1; i <= maxPages; i++) {
@@ -36,12 +33,12 @@ export const extractTextFromPdf = async (file: File): Promise<string> => {
     }
 
     if (numPages > maxPages) {
-        fullText += `\n\n[Texto truncado. Se procesaron las primeras ${maxPages} páginas...]`;
+        fullText += `\n\n[Texto truncado...]`;
     }
 
     return fullText;
   } catch (error) {
     console.error("Error parsing PDF:", error);
-    throw new Error("No se pudo leer el archivo PDF. Verifica el formato.");
+    throw new Error("No se pudo leer el archivo PDF.");
   }
 };

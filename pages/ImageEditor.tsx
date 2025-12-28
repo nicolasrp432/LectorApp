@@ -1,8 +1,7 @@
-
 import React, { useState, useRef } from 'react';
-import { Button } from '../components/ui/Button';
-import { editImage } from '../services/ai';
-import { useToast } from '../context/ToastContext';
+import { Button } from '../components/ui/Button.tsx';
+import { editImage } from '../services/ai.ts';
+import { useToast } from '../context/ToastContext.tsx';
 
 interface ImageEditorProps {
     onBack: () => void;

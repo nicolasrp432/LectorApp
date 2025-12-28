@@ -16,7 +16,7 @@
     "recharts": "^2.15.0",
     "@google/genai": "^1.33.0",
     "@supabase/supabase-js": "^2.39.0",
-    "pdfjs-dist": "3.11.174"
+    "pdfjs-dist": "4.4.168"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

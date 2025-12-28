@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
-import { AppRoute, Reward, Achievement } from '../types';
-import { REWARDS_LIST, ACHIEVEMENTS_LIST } from '../constants';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
+import { AppRoute, Reward, Achievement } from '../types.ts';
+import { REWARDS_LIST, ACHIEVEMENTS_LIST } from '../constants.ts';
+import { useAuth } from '../context/AuthContext.tsx';
+import { useToast } from '../context/ToastContext.tsx';
 
 interface RewardsProps {
   onBack: () => void;

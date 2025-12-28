@@ -1,9 +1,8 @@
-
 import React from 'react';
-import { AppRoute, TrainingModule } from '../types';
-import { TRAINING_MODULES } from '../constants';
-import { useAuth } from '../context/AuthContext';
-import { Button } from '../components/ui/Button';
+import { AppRoute, TrainingModule } from '../types.ts';
+import { TRAINING_MODULES } from '../constants.ts';
+import { useAuth } from '../context/AuthContext.tsx';
+import { Button } from '../components/ui/Button.tsx';
 
 interface TrainingsListProps {
     onNavigate: (route: AppRoute) => void;

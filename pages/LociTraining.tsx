@@ -1,13 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { generateBizarreStory, generateMemoryImage } from '../services/ai';
-import { Button } from '../components/ui/Button';
-import { MemoryPalace, ImageSize } from '../types';
-import { dbService } from '../services/db';
-import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext.tsx';
+import { generateBizarreStory, generateMemoryImage } from '../services/ai.ts';
+import { Button } from '../components/ui/Button.tsx';
+import { MemoryPalace, ImageSize } from '../types.ts';
+import { dbService } from '../services/db.ts';
+import { useToast } from '../context/ToastContext.tsx';
+import TrainingGuide from '../components/TrainingGuide.tsx';
 
-// --- DATA ---
 const SYSTEMS = [
     { id: 'loci', name: 'Lugares', icon: 'castle', desc: 'Asocia datos a espacios físicos.', color: 'from-blue-600 to-indigo-700' },
     { id: 'body', name: 'Cuerpo', icon: 'accessibility_new', desc: 'Usa partes de tu cuerpo como estaciones.', color: 'from-pink-600 to-rose-700' },
@@ -44,15 +44,14 @@ const LociTraining: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [savedPalaces, setSavedPalaces] = useState<MemoryPalace[]>([]);
   const [selectedPalace, setSelectedPalace] = useState<MemoryPalace | null>(null);
   const [imageSize, setImageSize] = useState<ImageSize>('1K');
+  const [showGuide, setShowGuide] = useState(false);
 
-  // Load saved palaces
   useEffect(() => {
     if (user) {
         dbService.getMemoryPalaces(user.id).then(setSavedPalaces);
     }
   }, [user]);
 
-  // --- Handlers ---
   const handleSystemSelect = (sys: typeof SYSTEMS[0]) => {
       setMethod(sys);
       setPhase('qty');
@@ -81,10 +80,8 @@ const LociTraining: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   };
 
   const ensureApiKey = async () => {
-    // @ts-ignore
     const hasKey = await window.aistudio.hasSelectedApiKey();
     if (!hasKey) {
-        // @ts-ignore
         await window.aistudio.openSelectKey();
     }
   };
@@ -113,7 +110,6 @@ const LociTraining: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         console.error("Loci Training Generation Error:", error);
         if (error.message?.includes('PERMISSION_DENIED') || error.message?.includes('403')) {
             showToast("Tu clave API no tiene permisos. Por favor, selecciona una clave de un proyecto de pago.", "error");
-            // @ts-ignore
             await window.aistudio.openSelectKey();
             setPhase('input');
         } else {
@@ -138,7 +134,6 @@ const LociTraining: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       setScore(finalScore);
       setPhase('result');
 
-      // Save to History/Logs
       await logReading({
           exerciseType: 'loci',
           levelOrSpeed: 1,
@@ -148,7 +143,6 @@ const LociTraining: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           errors: dataCount - correct
       });
 
-      // Save Palace to DB
       if (user) {
           const palace: MemoryPalace = {
               id: `pal-${Date.now()}`,
@@ -164,11 +158,10 @@ const LociTraining: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       }
   };
 
-  // --- Renderers ---
   return (
     <div className="flex-1 flex flex-col h-full bg-[#0d1810] font-display relative overflow-hidden text-white">
+      {showGuide && <TrainingGuide guideKey="loci" onClose={() => setShowGuide(false)} />}
       
-      {/* Background FX */}
       <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-[-20%] left-[-10%] w-full h-full bg-primary/5 rounded-full blur-[120px]"></div>
           <div className="absolute bottom-[-20%] right-[-10%] w-full h-full bg-blue-500/5 rounded-full blur-[120px]"></div>
@@ -182,14 +175,17 @@ const LociTraining: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             <span className="text-[10px] uppercase tracking-widest font-bold text-primary animate-pulse">Supermemoria</span>
             <h2 className="text-sm font-bold">{method ? method.name : 'Sistemas de Mnemotecnia'}</h2>
         </div>
-        <button onClick={() => setPhase('library')} className="p-2 rounded-full hover:bg-white/10">
-            <span className="material-symbols-outlined">history</span>
-        </button>
+        <div className="flex items-center gap-1">
+            <button onClick={() => setShowGuide(true)} className="p-2 rounded-full hover:bg-white/10 text-gray-400">
+                <span className="material-symbols-outlined">help</span>
+            </button>
+            <button onClick={() => setPhase('library')} className="p-2 rounded-full hover:bg-white/10">
+                <span className="material-symbols-outlined">history</span>
+            </button>
+        </div>
       </header>
 
       <div className="flex-1 flex flex-col p-6 z-10 overflow-y-auto no-scrollbar">
-        
-        {/* PHASE: LIBRARY */}
         {phase === 'library' && (
             <div className="flex-1 flex flex-col animate-in slide-in-from-right-4">
                 <h1 className="text-3xl font-bold mb-6">Tus Palacios</h1>
@@ -215,7 +211,6 @@ const LociTraining: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             </div>
         )}
 
-        {/* PHASE: VIEW SAVED */}
         {phase === 'view_saved' && selectedPalace && (
             <div className="flex-1 flex flex-col animate-in zoom-in-95">
                 <div className="flex items-center gap-4 mb-6">
@@ -237,7 +232,6 @@ const LociTraining: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             </div>
         )}
 
-        {/* PHASE 1: SYSTEM SELECT */}
         {phase === 'system' && (
             <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-4">
                 <h1 className="text-3xl font-bold mb-2">Elige tu Sistema</h1>
@@ -255,10 +249,12 @@ const LociTraining: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         </button>
                     ))}
                 </div>
+                <button onClick={() => setShowGuide(true)} className="mt-8 text-xs text-gray-500 font-bold uppercase tracking-widest hover:text-primary transition-colors flex items-center justify-center gap-1">
+                    <span className="material-symbols-outlined text-sm">info</span> ¿Cómo funciona el Palacio?
+                </button>
             </div>
         )}
 
-        {/* PHASE: QUANTITY */}
         {phase === 'qty' && (
             <div className="flex-1 flex flex-col animate-in slide-in-from-right-4 items-center justify-center text-center">
                 <h1 className="text-2xl font-bold mb-4">¿Cuántos datos memorizar?</h1>
@@ -270,7 +266,6 @@ const LociTraining: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             </div>
         )}
 
-        {/* PHASE: SETUP (Loci only) */}
         {phase === 'setup' && (
             <div className="flex-1 flex flex-col animate-in slide-in-from-right-4">
                 <h1 className="text-2xl font-bold mb-6">Describe tu Palacio</h1>
@@ -294,13 +289,11 @@ const LociTraining: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             </div>
         )}
 
-        {/* PHASE 3: INPUT CONCEPTS */}
         {phase === 'input' && (
             <div className="flex-1 flex flex-col animate-in slide-in-from-right-4">
                 <h1 className="text-2xl font-bold mb-2">¿Qué quieres recordar?</h1>
                 <div className="flex items-center justify-between mb-8">
                     <p className="text-xs text-gray-500 uppercase tracking-widest">Introduce {dataCount} conceptos</p>
-                    {/* Image Size Selection Affordance */}
                     <div className="flex items-center gap-2 bg-white/10 p-1 rounded-lg">
                         {(['1K', '2K', '4K'] as ImageSize[]).map(s => (
                             <button 
@@ -343,7 +336,6 @@ const LociTraining: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             </div>
         )}
 
-        {/* PHASE 4: ASSOCIATION (CORE) */}
         {phase === 'association' && (
             <div className="flex-1 flex flex-col">
                 {isGenerating ? (
@@ -395,7 +387,6 @@ const LociTraining: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             </div>
         )}
 
-        {/* PHASE 5: TEST */}
         {phase === 'test' && (
             <div className="flex-1 flex flex-col animate-in slide-in-from-right-4">
                 <h1 className="text-2xl font-bold mb-2">Recuperación Activa</h1>
@@ -422,7 +413,6 @@ const LociTraining: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             </div>
         )}
 
-        {/* PHASE 6: RESULT */}
         {phase === 'result' && (
             <div className="flex-1 flex flex-col items-center justify-center text-center animate-in zoom-in-95">
                 <div className={`size-32 rounded-full border-4 flex items-center justify-center mb-6 shadow-2xl ${score > 60 ? 'border-primary bg-primary/10' : 'border-orange-500 bg-orange-500/10'}`}>

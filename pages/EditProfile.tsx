@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { User } from '../types';
-import { AVATARS } from '../constants';
+import { User } from '../types.ts';
+import { AVATARS } from '../constants.ts';
 
 interface EditProfileProps {
   user: User;

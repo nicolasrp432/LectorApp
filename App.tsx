@@ -1,90 +1,70 @@
-
 import React, { useState, useEffect } from 'react';
-import { AppRoute, Achievement } from './types';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { ToastProvider, useToast } from './context/ToastContext';
-import { PRACTICE_LIBRARY } from './constants';
+import { AppRoute, Achievement } from './types.ts';
+import { AuthProvider, useAuth } from './context/AuthContext.tsx';
+import { ToastProvider, useToast } from './context/ToastContext.tsx';
+import { PRACTICE_LIBRARY } from './constants.ts';
+import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 
 // Pages
-import Welcome from './pages/Welcome';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ResetPassword from './pages/ResetPassword';
-import AssessmentIntro from './pages/AssessmentIntro';
-import AssessmentReading from './pages/AssessmentReading';
-import AssessmentQuiz from './pages/AssessmentQuiz';
-import AssessmentResults from './pages/AssessmentResults';
-import Dashboard from './pages/Dashboard';
-import Library from './pages/Library';
-import ReadingSession from './pages/ReadingSession';
-import Quiz from './pages/Quiz'; 
-import SchulteTable from './pages/SchulteTable';
-import WordSpan from './pages/WordSpan';
-import MemoryTraining from './pages/MemoryTraining';
-import LociTraining from './pages/LociTraining';
-import Settings from './pages/Settings';
-import EditProfile from './pages/EditProfile';
-import Rewards from './pages/Rewards';
-import TrainingsList from './pages/TrainingsList';
-import BottomNav from './components/BottomNav';
-import Header from './components/Header';
-import AchievementModal from './components/AchievementModal';
+import Welcome from './pages/Welcome.tsx';
+import Login from './pages/Login.tsx';
+import Register from './pages/Register.tsx';
+import ResetPassword from './pages/ResetPassword.tsx';
+import AssessmentIntro from './pages/AssessmentIntro.tsx';
+import AssessmentReading from './pages/AssessmentReading.tsx';
+import AssessmentQuiz from './pages/AssessmentQuiz.tsx';
+import AssessmentResults from './pages/AssessmentResults.tsx';
+import Dashboard from './pages/Dashboard.tsx';
+import Library from './pages/Library.tsx';
+import ReadingSession from './pages/ReadingSession.tsx';
+import Quiz from './pages/Quiz.tsx'; 
+import SchulteTable from './pages/SchulteTable.tsx';
+import WordSpan from './pages/WordSpan.tsx';
+import MemoryTraining from './pages/MemoryTraining.tsx';
+import LociTraining from './pages/LociTraining.tsx';
+import Settings from './pages/Settings.tsx';
+import EditProfile from './pages/EditProfile.tsx';
+import Rewards from './pages/Rewards.tsx';
+import TrainingsList from './pages/TrainingsList.tsx';
+import BottomNav from './components/BottomNav.tsx';
+import Header from './components/Header.tsx';
+import AchievementModal from './components/AchievementModal.tsx';
 
 const MainLayout: React.FC = () => {
-  const { user, loading, notifications, setNotifications, books, flashcards, updateFlashcard, logReading, updateUser, logout } = useAuth();
+  const { user, loading, notifications, setNotifications, books, logReading, updateUser, logout } = useAuth();
   const [currentRoute, setCurrentRoute] = useState<AppRoute>(AppRoute.WELCOME);
   const [currentBookId, setCurrentBookId] = useState<string>('');
   const [assessmentData, setAssessmentData] = useState({wpm: 0, comprehension: 0});
   const [newAchievement, setNewAchievement] = useState<Achievement | null>(null);
 
-  // Manejar el cambio de ruta por URL (necesario para el reset de password)
-  useEffect(() => {
-    const handleUrlChange = () => {
-      const path = window.location.pathname;
-      if (path === '/reset-password') {
-        setCurrentRoute(AppRoute.RESET_PASSWORD);
-      }
-    };
-    handleUrlChange();
-    window.addEventListener('popstate', handleUrlChange);
-    return () => window.removeEventListener('popstate', handleUrlChange);
-  }, []);
-
   useEffect(() => {
     if (user?.preferences?.themeColor) {
         document.documentElement.style.setProperty('--primary', user.preferences.themeColor);
-    } else {
-        document.documentElement.style.setProperty('--primary', '#19e65e');
     }
   }, [user?.preferences?.themeColor]);
 
   const navigate = (route: AppRoute) => {
       setCurrentRoute(route);
       window.scrollTo(0,0);
-      // Actualizar URL sin recargar para soportar ruteo directo
-      window.history.pushState({}, '', `/${route === AppRoute.WELCOME ? '' : route}`);
   };
 
+  // Guard: Auto-redirect to Login/Welcome when session is cleared
   useEffect(() => {
-      // Si el usuario se autentica o entra como invitado, y está en una pantalla de acceso, lo enviamos al dashboard
+      const publicRoutes = [
+          AppRoute.WELCOME, AppRoute.LOGIN, AppRoute.REGISTER, 
+          AppRoute.RESET_PASSWORD, AppRoute.ASSESSMENT_INTRO, 
+          AppRoute.ASSESSMENT_READING, AppRoute.ASSESSMENT_QUIZ, 
+          AppRoute.ASSESSMENT_RESULTS
+      ];
+      
+      if (!loading && !user && !publicRoutes.includes(currentRoute)) {
+          navigate(AppRoute.WELCOME);
+      }
+  }, [user, loading, currentRoute]);
+
+  useEffect(() => {
       if (!loading && user && (currentRoute === AppRoute.WELCOME || currentRoute === AppRoute.LOGIN || currentRoute === AppRoute.REGISTER)) {
           navigate(AppRoute.DASHBOARD);
-      }
-  }, [user, loading]);
-
-  useEffect(() => {
-      // Rutas públicas
-      const isPublicRoute = [
-        AppRoute.WELCOME, 
-        AppRoute.LOGIN, 
-        AppRoute.REGISTER, 
-        AppRoute.RESET_PASSWORD
-      ].includes(currentRoute) || currentRoute.startsWith('assessment');
-      
-      const isProcessingAuth = window.location.hash.includes('access_token');
-
-      if (!loading && !user && !isPublicRoute && !isProcessingAuth) {
-          navigate(AppRoute.WELCOME);
       }
   }, [user, loading, currentRoute]);
 
@@ -93,7 +73,7 @@ const MainLayout: React.FC = () => {
         <div className="flex h-screen w-full items-center justify-center bg-[#112116]">
              <div className="flex flex-col items-center gap-4">
                  <div className="size-16 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
-                 <p className="text-primary text-xs font-bold uppercase tracking-widest animate-pulse">Sincronizando Córtex...</p>
+                 <p className="text-primary text-xs font-bold uppercase tracking-widest">Sincronizando...</p>
              </div>
         </div>
       );
@@ -115,9 +95,9 @@ const MainLayout: React.FC = () => {
       case AppRoute.ASSESSMENT_INTRO: return <AssessmentIntro onNavigate={navigate} onBack={() => user ? navigate(AppRoute.SETTINGS) : navigate(AppRoute.WELCOME)} />;
       case AppRoute.ASSESSMENT_READING: return <AssessmentReading onFinishReading={(wpm) => { setAssessmentData(p => ({...p, wpm})); navigate(AppRoute.ASSESSMENT_QUIZ); }} onBack={() => navigate(AppRoute.ASSESSMENT_INTRO)} />;
       case AppRoute.ASSESSMENT_QUIZ: return <AssessmentQuiz onFinishQuiz={(s) => { setAssessmentData(p => ({...p, comprehension: s})); navigate(AppRoute.ASSESSMENT_RESULTS); }} />;
-      case AppRoute.ASSESSMENT_RESULTS: return <AssessmentResults wpm={assessmentData.wpm} comprehension={assessmentData.comprehension} onContinue={() => user ? navigate(AppRoute.DASHBOARD) : navigate(AppRoute.LOGIN)} />;
+      case AppRoute.ASSESSMENT_RESULTS: return <AssessmentResults wpm={assessmentData.wpm} comprehension={assessmentData.comprehension} onContinue={() => navigate(AppRoute.DASHBOARD)} />;
       
-      case AppRoute.DASHBOARD: return user ? <> <Header user={user} notifications={notifications} onClearNotifications={() => setNotifications([])} /> <Dashboard onNavigate={navigate} /> </> : <Login onLogin={() => {}} onNavigate={navigate} />;
+      case AppRoute.DASHBOARD: return user ? <> <Header user={user} notifications={notifications} onClearNotifications={() => setNotifications([])} /> <Dashboard onNavigate={navigate} /> </> : <Welcome onNavigate={navigate} />;
       case AppRoute.TRAININGS: return <TrainingsList onNavigate={navigate} onBack={() => navigate(AppRoute.DASHBOARD)} />;
       case AppRoute.LIBRARY: return <Library onNavigate={navigate} onSelectBook={(id) => { setCurrentBookId(id); navigate(AppRoute.READING); }} />;
       case AppRoute.READING: 
@@ -133,17 +113,8 @@ const MainLayout: React.FC = () => {
         );
       
       case AppRoute.SCHULTE: return <SchulteTable onBack={() => navigate(AppRoute.DASHBOARD)} />;
-      case AppRoute.WORD_SPAN: return (
-        <WordSpan 
-          onBack={() => navigate(AppRoute.DASHBOARD)} 
-          onComplete={async (score) => {}}
-        />
-      );
-      case AppRoute.MEMORY_TRAINING: return (
-        <MemoryTraining 
-          onNavigate={navigate} 
-        />
-      );
+      case AppRoute.WORD_SPAN: return <WordSpan onBack={() => navigate(AppRoute.DASHBOARD)} onComplete={async () => {}} />;
+      case AppRoute.MEMORY_TRAINING: return <MemoryTraining onNavigate={navigate} />;
       case AppRoute.LOCI_TRAINING: return <LociTraining onBack={() => navigate(AppRoute.DASHBOARD)} />;
       
       case AppRoute.SETTINGS: return user ? (
@@ -154,41 +125,42 @@ const MainLayout: React.FC = () => {
           onNavigate={navigate}
           onUpdatePreferences={(prefs) => updateUser({ preferences: { ...user.preferences, ...prefs } })}
         />
-      ) : null;
+      ) : <Welcome onNavigate={navigate} />;
+      
       case AppRoute.EDIT_PROFILE: return user ? (
         <EditProfile 
           user={user} 
           onBack={() => navigate(AppRoute.SETTINGS)} 
           onUpdateUser={updateUser} 
         />
-      ) : null;
+      ) : <Welcome onNavigate={navigate} />;
       
-      case AppRoute.REWARDS: return user ? (
-        <Rewards 
-          onBack={() => navigate(AppRoute.DASHBOARD)} 
-        />
-      ) : null;
-
+      case AppRoute.REWARDS: return user ? <Rewards onBack={() => navigate(AppRoute.DASHBOARD)} /> : <Welcome onNavigate={navigate} />;
+      
       default: return <Welcome onNavigate={navigate} />;
     }
   };
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col max-w-md mx-auto border-x border-[#244730] shadow-2xl overflow-hidden bg-background-light dark:bg-background-dark">
-        {renderContent()}
-        {newAchievement && <AchievementModal achievement={newAchievement} onClose={() => setNewAchievement(null)} />}
-        {showBottomNav && <BottomNav currentRoute={currentRoute} onNavigate={navigate} />}
-    </div>
+    <ErrorBoundary>
+      <div className="relative flex min-h-screen w-full flex-col max-w-md mx-auto border-x border-[#244730] shadow-2xl overflow-hidden bg-background-dark">
+          {renderContent()}
+          {newAchievement && <AchievementModal achievement={newAchievement} onClose={() => setNewAchievement(null)} />}
+          {showBottomNav && <BottomNav currentRoute={currentRoute} onNavigate={navigate} />}
+      </div>
+    </ErrorBoundary>
   );
 };
 
 const App: React.FC = () => {
   return (
-    <ToastProvider>
-        <AuthProvider>
-            <MainLayout />
-        </AuthProvider>
-    </ToastProvider>
+    <ErrorBoundary>
+      <ToastProvider>
+          <AuthProvider>
+              <MainLayout />
+          </AuthProvider>
+      </ToastProvider>
+    </ErrorBoundary>
   );
 };
 

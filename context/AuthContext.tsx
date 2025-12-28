@@ -1,17 +1,17 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { User, ReadingLog, Book, Flashcard, Notification, Achievement, Reward, UserStats } from '../types';
-import { supabase } from '../utils/supabase';
-import { dbService } from '../services/db';
-import { SUGGESTED_BOOKS, MOCK_NOTIFICATIONS, AVATARS } from '../constants';
+import { User, ReadingLog, Book, Flashcard, Notification as AppNotification, Achievement, Reward, UserStats } from '../types.ts';
+import { supabase } from '../utils/supabase.ts';
+import { dbService } from '../services/db.ts';
+import { SUGGESTED_BOOKS, MOCK_NOTIFICATIONS, AVATARS } from '../constants.ts';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isGuest: boolean;
   books: Book[];
   flashcards: Flashcard[];
   readingLogs: ReadingLog[];
-  notifications: Notification[];
+  notifications: AppNotification[];
   refreshUser: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
   logReading: (log: Omit<ReadingLog, 'id' | 'userId' | 'timestamp'>) => Promise<void>;
@@ -21,7 +21,7 @@ interface AuthContextType {
   equipReward: (reward: Reward) => Promise<void>;
   loginAsGuest: () => void;
   logout: () => Promise<void>;
-  setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>;
+  setNotifications: React.Dispatch<React.SetStateAction<AppNotification[]>>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,27 +29,26 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isGuest, setIsGuest] = useState(false);
   const [books, setBooks] = useState<Book[]>([]);
   const [readingLogs, setReadingLogs] = useState<ReadingLog[]>([]);
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   
   const isSyncing = useRef(false);
-  const isGuest = useRef(false);
 
   const loadUserData = useCallback(async (userId: string, email: string, metadata?: any) => {
     if (isSyncing.current) return;
     isSyncing.current = true;
     
     try {
-      console.log(`[AuthSystem] Sincronizando: ${email}`);
       let profile = await dbService.getUserProfile(userId);
       
       if (!profile) {
-        const initialStats: UserStats = { streak: 1, tel: 200, xp: 100, lastActiveDate: Date.now() };
+        const initialStats: UserStats = { streak: 1, tel: 200, xp: 100, lastActiveDate: Date.now(), maxSchulteLevel: 1, maxWordSpan: 3 };
         const newUser: User = {
           id: userId,
-          name: metadata?.full_name || metadata?.display_name || email.split('@')[0],
+          name: metadata?.full_name || email.split('@')[0],
           email: email,
           avatarUrl: metadata?.avatar_url || AVATARS[0],
           stats: initialStats,
@@ -82,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setNotifications(MOCK_NOTIFICATIONS);
       setUser(profile);
     } catch (err) {
-      console.error("[AuthSystem] Error en carga:", err);
+      console.error("[AuthSystem] Error:", err);
     } finally {
       isSyncing.current = false;
       setLoading(false);
@@ -91,61 +90,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`[SupabaseAuth] Evento: ${event}`);
-      
       if (session?.user) {
-        isGuest.current = false;
+        setIsGuest(false);
         await loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
-      } else {
-        // Solo limpiar si NO estamos en modo invitado
-        if (!isGuest.current) {
-          const isOAuthFlow = window.location.hash.includes('access_token');
-          if (!isOAuthFlow) {
-            setUser(null);
-            setLoading(false);
-          }
-        }
-      }
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
-      } else {
-        const isOAuthFlow = window.location.hash.includes('access_token');
-        if (!isOAuthFlow) setLoading(false);
+      } else if (!isGuest) {
+        setUser(null);
+        setLoading(false);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [loadUserData]);
+  }, [loadUserData, isGuest]);
 
   const loginAsGuest = () => {
-    isGuest.current = true;
-    setUser({
+    setIsGuest(true);
+    const guestUser: User = {
         id: 'guest',
         name: 'Explorador Invitado',
-        email: 'invitado@lector.app',
+        email: 'guest@lector.app',
         avatarUrl: AVATARS[1],
-        stats: { streak: 1, tel: 200, xp: 100, lastActiveDate: Date.now() },
+        stats: { streak: 1, tel: 200, xp: 100, lastActiveDate: Date.now(), maxSchulteLevel: 1, maxWordSpan: 3 },
         joinedDate: Date.now(),
         baselineWPM: 200,
         level: "Visitante",
-        preferences: { dailyGoalMinutes: 15, targetWPM: 250, difficultyLevel: 'Básico', notificationsEnabled: false, soundEnabled: true, unlockedRewards: [] },
+        preferences: { 
+          dailyGoalMinutes: 15, 
+          targetWPM: 250, 
+          difficultyLevel: 'Básico', 
+          notificationsEnabled: false, 
+          soundEnabled: true, 
+          unlockedRewards: [] 
+        },
         achievements: []
-    });
+    };
+    setUser(guestUser);
+    setBooks(SUGGESTED_BOOKS);
+    setNotifications(MOCK_NOTIFICATIONS);
     setLoading(false);
   };
 
   const logout = async () => {
     setLoading(true);
-    isGuest.current = false;
-    await supabase.auth.signOut();
-    setUser(null);
-    setLoading(false);
+    try {
+        if (user && user.id !== 'guest') {
+            await supabase.auth.signOut();
+        }
+    } catch (err) {
+        console.error("Error signing out:", err);
+    } finally {
+        setIsGuest(false);
+        setUser(null);
+        setBooks([]);
+        setReadingLogs([]);
+        setFlashcards([]);
+        setNotifications([]);
+        setLoading(false);
+    }
   };
 
   const refreshUser = async () => {
+    if (isGuest) return;
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) await loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
   };
@@ -154,7 +158,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return;
     const updated = { ...user, ...updates };
     setUser(updated);
-    if (user.id !== 'guest') {
+    if (!isGuest) {
         if (updates.stats) await dbService.updateUserStats(user.id, updated.stats).catch(console.error);
         if (updates.preferences) await dbService.updateUserPreferences(user.id, updated.preferences).catch(console.error);
     }
@@ -165,14 +169,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const now = Date.now();
     const newLog: ReadingLog = { ...logData, id: `temp-${now}`, userId: user.id, timestamp: now };
     setReadingLogs(prev => [...prev, newLog]);
-    if (user.id !== 'guest') await dbService.addReadingLog(newLog).catch(console.error);
+    if (!isGuest) await dbService.addReadingLog(newLog).catch(console.error);
   };
 
   const addBook = async (book: Book) => {
     if (!user) return null;
     const bookWithUser = { ...book, userId: user.id };
     let id = book.id;
-    if (user.id !== 'guest') {
+    if (!isGuest) {
         const dbId = await dbService.addUserBook(bookWithUser).catch(() => null);
         if (dbId) id = dbId;
     }
@@ -182,13 +186,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addFlashcards = async (cards: Flashcard[]) => {
     if (!user) return;
-    if (user.id !== 'guest') await dbService.addFlashcards(cards.map(c => ({ ...c, userId: user.id }))).catch(console.error);
+    if (!isGuest) await dbService.addFlashcards(cards.map(c => ({ ...c, userId: user.id }))).catch(console.error);
     setFlashcards(prev => [...cards, ...prev]);
   };
 
   const updateFlashcard = async (card: Flashcard) => {
     if (!user) return;
-    if (user.id !== 'guest') await dbService.updateFlashcard(card).catch(console.error);
+    if (!isGuest) await dbService.updateFlashcard(card).catch(console.error);
     setFlashcards(prev => prev.map(c => c.id === card.id ? card : c));
   };
 
@@ -200,7 +204,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider value={{
-      user, loading, books, flashcards, readingLogs, notifications,
+      user, loading, isGuest, books, flashcards, readingLogs, notifications,
       refreshUser, updateUser, logReading, addBook, addFlashcards, updateFlashcard, equipReward, loginAsGuest, logout, setNotifications
     }}>
       {children}

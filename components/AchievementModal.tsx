@@ -1,5 +1,5 @@
 import React from 'react';
-import { Achievement } from '../types';
+import { Achievement } from '../types.ts';
 
 interface AchievementModalProps {
   achievement: Achievement;

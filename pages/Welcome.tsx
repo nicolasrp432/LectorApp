@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { AppRoute } from '../types';
+import { AppRoute } from '../types.ts';
 
 interface WelcomeProps {
   onNavigate: (route: AppRoute) => void;

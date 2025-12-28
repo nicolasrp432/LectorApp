@@ -1,11 +1,10 @@
-
 import React, { useMemo, useState } from 'react';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import { AppRoute, ReadingLog } from '../types';
-import { useAuth } from '../context/AuthContext';
-import { Button } from '../components/ui/Button';
-import { TRAINING_MODULES } from '../constants';
-import { AICoachChat } from '../components/AICoachChat';
+import { AppRoute, ReadingLog } from '../types.ts';
+import { useAuth } from '../context/AuthContext.tsx';
+import { Button } from '../components/ui/Button.tsx';
+import { TRAINING_MODULES } from '../constants.ts';
+import { AICoachChat } from '../components/AICoachChat.tsx';
 
 interface DashboardProps {
     onNavigate: (route: AppRoute) => void;

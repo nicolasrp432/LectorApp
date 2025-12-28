@@ -1,7 +1,6 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { startCoachChat } from '../services/ai';
-import { ChatMessage } from '../types';
+import { startCoachChat } from '../services/ai.ts';
+import { ChatMessage } from '../types.ts';
 
 interface AICoachChatProps {
     isOpen?: boolean;
@@ -27,14 +26,23 @@ export const AICoachChat: React.FC<AICoachChatProps> = ({ isOpen, onToggle }) =>
         
         const userMsg = input;
         setInput('');
-        setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+        
+        const newMessages: ChatMessage[] = [...messages, { role: 'user', text: userMsg }];
+        setMessages(newMessages);
         setIsTyping(true);
 
         try {
-            const chat = startCoachChat([]);
+            // Convert to Gemini history format
+            const history = newMessages.slice(0, -1).map(m => ({
+                role: m.role as 'user' | 'model',
+                parts: [{ text: m.text }]
+            }));
+            
+            const chat = startCoachChat(history);
             const result = await chat.sendMessage({ message: userMsg });
             setMessages(prev => [...prev, { role: 'model', text: result.text || 'No pude procesar eso, intenta de nuevo.' }]);
         } catch (error) {
+            console.error("Coach Chat Error:", error);
             setMessages(prev => [...prev, { role: 'model', text: 'Error de conexión con el Coach.' }]);
         } finally {
             setIsTyping(false);

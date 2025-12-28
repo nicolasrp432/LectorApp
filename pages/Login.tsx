@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
-import { AppRoute } from '../types';
-import { supabase } from '../utils/supabase';
-import { useAuth } from '../context/AuthContext';
+import { AppRoute } from '../types.ts';
+import { supabase } from '../utils/supabase.ts';
+import { useAuth } from '../context/AuthContext.tsx';
 
 interface LoginProps {
   onLogin: () => void;
@@ -29,11 +28,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
         });
 
         if (error) {
-            if (error.message.toLowerCase().includes('invalid login credentials')) {
-                throw new Error("Credenciales inválidas. Si usaste Google, inicia sesión con el botón superior o usa 'Olvidaste tu contraseña' para crear una.");
+            const msg = error.message.toLowerCase();
+            if (msg.includes('invalid login credentials')) {
+                throw new Error("Credenciales incorrectas. Si usaste Google anteriormente, usa el botón de Google o crea una contraseña con 'Olvidaste tu contraseña'.");
             }
-            if (error.message.includes('Email not confirmed')) {
-                throw new Error("Debes confirmar tu email antes de entrar. Revisa tu bandeja de entrada.");
+            if (msg.includes('email not confirmed')) {
+                throw new Error("Por favor, confirma tu correo electrónico para poder entrar.");
             }
             throw error;
         }
@@ -49,26 +49,25 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
 
   const handleForgotPassword = async () => {
     if (!email) {
-        setErrorMsg("Introduce tu email para enviarte un enlace. Este enlace te permitirá crear una contraseña incluso si usas Google.");
+        setErrorMsg("Introduce tu email para enviarte el enlace de recuperación.");
         return;
     }
     setIsLoading(true);
     try {
-        // Redirigimos explícitamente a la nueva ruta /reset-password
         const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
             redirectTo: `${window.location.origin}/reset-password`,
         });
         
         if (error) {
-            if (error.status === 429) throw new Error("Has solicitado demasiados correos. Espera unos minutos.");
-            if (error.status === 500) throw new Error("Error interno del servidor de correo. Por favor, contacta con soporte o intenta más tarde.");
+            if (error.status === 429) {
+                throw new Error("Demasiados intentos. Espera unos minutos.");
+            }
             throw error;
         }
-        
         setResetSent(true);
-        setErrorMsg("Te hemos enviado un enlace. Úsalo para establecer tu contraseña y acceder también con email.");
+        setErrorMsg("Enlace de recuperación enviado. Revisa tu correo.");
     } catch (error: any) {
-        setErrorMsg(error.message);
+        setErrorMsg(error.message || "Error al enviar recuperación.");
     } finally {
         setIsLoading(false);
     }
@@ -77,9 +76,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
   const handleGoogleLogin = async () => {
     try {
         setIsLoading(true);
+        setErrorMsg('');
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
-            options: { redirectTo: window.location.origin }
+            options: {
+                redirectTo: window.location.origin,
+            }
         });
         if (error) throw error;
     } catch (error: any) {
@@ -88,14 +90,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
     }
   };
 
-  const handleGuest = () => {
-    loginAsGuest();
-    onNavigate(AppRoute.DASHBOARD);
-  };
-
   return (
     <div className="flex flex-col h-screen w-full bg-background-light dark:bg-background-dark overflow-hidden relative">
-        <div className="absolute top-[-20%] left-[-20%] w-[70%] h-[50%] bg-primary/10 rounded-full blur-[100px] pointer-events-none"></div>
+        <div className="absolute top-[-20%] right-[-20%] w-[70%] h-[50%] bg-primary/10 rounded-full blur-[100px] pointer-events-none"></div>
 
         <div className="absolute top-6 left-6 z-20">
             <button onClick={() => onNavigate(AppRoute.WELCOME)} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-slate-900 dark:text-white">
@@ -105,45 +102,15 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
 
         <div className="flex-1 flex flex-col justify-center px-8 z-10 max-w-md mx-auto w-full">
             <div className="mb-8 text-center">
-                <div className="inline-flex items-center justify-center size-16 rounded-2xl bg-gradient-to-br from-primary/20 to-transparent border border-primary/20 mb-6 shadow-lg">
-                    <span className="material-symbols-outlined text-primary text-4xl">fingerprint</span>
-                </div>
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Bienvenido</h1>
-                <p className="text-slate-500 dark:text-gray-400 text-sm">Accede a tu córtex de memoria personal.</p>
+                <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">Bienvenido</h1>
+                <p className="text-slate-500 dark:text-gray-400 text-sm">Inicia sesión para continuar tu entrenamiento.</p>
             </div>
 
             {errorMsg && (
-                <div className={`mb-6 p-3 border rounded-xl text-sm text-center animate-in fade-in ${resetSent ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
+                <div className={`mb-6 p-3 rounded-xl text-sm text-center animate-in fade-in ${resetSent ? 'bg-green-500/10 border border-green-500/20 text-green-500' : 'bg-red-500/10 border border-red-500/20 text-red-500'}`}>
                     {errorMsg}
                 </div>
             )}
-
-            <button 
-                type="button"
-                disabled={isLoading}
-                onClick={handleGoogleLogin}
-                className="w-full bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 text-slate-700 dark:text-white font-bold h-14 rounded-xl flex items-center justify-center gap-3 mb-4 shadow-sm active:scale-[0.98] disabled:opacity-50 transition-all"
-            >
-                <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-6 h-6" />
-                <span>Continuar con Google</span>
-            </button>
-
-            <button 
-                type="button"
-                onClick={handleGuest}
-                className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-500 text-[10px] font-bold h-10 rounded-xl mb-4 transition-all uppercase tracking-widest border-dashed"
-            >
-                Entrar como Invitado
-            </button>
-
-            <div className="relative mb-6">
-                <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-200 dark:border-white/10"></div>
-                </div>
-                <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest">
-                    <span className="px-2 bg-background-light dark:bg-background-dark text-gray-500">O usa tu email</span>
-                </div>
-            </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1">
@@ -153,22 +120,27 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white outline-none text-sm"
-                        placeholder="tu@email.com"
+                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white outline-none text-sm focus:ring-2 focus:ring-primary/30 transition-all"
+                        placeholder="usuario@ejemplo.com"
                     />
                 </div>
-
                 <div className="space-y-1">
-                    <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400 ml-1">Contraseña</label>
-                        <button type="button" onClick={handleForgotPassword} className="text-[10px] text-primary font-bold hover:underline decoration-primary">¿Olvidaste o quieres crear una?</button>
+                    <div className="flex justify-between items-center px-1">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-500">Contraseña</label>
+                        <button 
+                            type="button"
+                            onClick={handleForgotPassword}
+                            className="text-[10px] font-bold uppercase tracking-wider text-primary hover:underline"
+                        >
+                            ¿Olvidaste tu contraseña?
+                        </button>
                     </div>
                     <input 
                         type="password" 
                         required
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white outline-none text-sm"
+                        className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-900 dark:text-white outline-none text-sm focus:ring-2 focus:ring-primary/30 transition-all"
                         placeholder="••••••••"
                     />
                 </div>
@@ -176,19 +148,47 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                 <button 
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-primary hover:bg-primary-dark active:scale-[0.98] transition-all text-background-dark font-bold text-lg h-14 rounded-xl flex items-center justify-center gap-2 shadow-lg disabled:opacity-70 mt-2"
+                    className="w-full bg-primary hover:bg-primary-dark active:scale-[0.98] transition-all text-background-dark font-bold text-lg h-14 rounded-xl flex items-center justify-center gap-2 shadow-lg mt-6"
                 >
                     {isLoading ? (
                         <span className="size-5 border-2 border-background-dark border-t-transparent rounded-full animate-spin"></span>
                     ) : (
-                        "Iniciar Sesión"
+                        "Entrar"
                     )}
                 </button>
             </form>
 
-            <div className="mt-6 text-center">
+            <div className="relative my-8">
+                <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-200 dark:border-white/10"></div>
+                </div>
+                <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest">
+                    <span className="px-2 bg-background-light dark:bg-background-dark text-gray-500">O continúa con</span>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-8">
+                <button 
+                    type="button"
+                    onClick={handleGoogleLogin}
+                    className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-700 dark:text-white font-bold h-12 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-gray-50 dark:hover:bg-white/10 active:scale-[0.98]"
+                >
+                    <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
+                    <span className="text-sm">Google</span>
+                </button>
+                <button 
+                    type="button"
+                    onClick={loginAsGuest}
+                    className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-700 dark:text-white font-bold h-12 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-gray-50 dark:hover:bg-white/10 active:scale-[0.98]"
+                >
+                    <span className="material-symbols-outlined text-gray-400">person_search</span>
+                    <span className="text-sm">Invitado</span>
+                </button>
+            </div>
+
+            <div className="text-center">
                 <p className="text-sm text-gray-500">
-                    ¿No tienes cuenta? <span onClick={() => onNavigate(AppRoute.REGISTER)} className="text-primary font-bold cursor-pointer hover:underline">Regístrate</span>
+                    ¿No tienes cuenta? <span onClick={() => onNavigate(AppRoute.REGISTER)} className="text-primary font-bold cursor-pointer hover:underline">Regístrate gratis</span>
                 </p>
             </div>
         </div>

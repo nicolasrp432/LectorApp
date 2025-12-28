@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ASSESSMENT_QUESTIONS } from '../constants';
+import { ASSESSMENT_QUESTIONS } from '../constants.ts';
 
 interface AssessmentQuizProps {
   onFinishQuiz: (comprehensionScore: number) => void;

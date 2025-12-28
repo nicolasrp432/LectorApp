@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { Button } from '../components/ui/Button';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
+import { Button } from '../components/ui/Button.tsx';
+import { useAuth } from '../context/AuthContext.tsx';
+import { useToast } from '../context/ToastContext.tsx';
+import TrainingGuide from '../components/TrainingGuide.tsx';
 
 interface SchulteTableProps {
   onBack: () => void;
@@ -11,15 +13,6 @@ const SchulteTable: React.FC<SchulteTableProps> = ({ onBack }) => {
   const { user, logReading } = useAuth();
   const { showToast } = useToast();
   
-  // Requirement: Max Level 7 with 9x9 grid.
-  // Logic:
-  // L1: 3x3
-  // L2: 4x4
-  // L3: 5x5
-  // L4: 6x6
-  // L5: 7x7
-  // L6: 8x8
-  // L7: 9x9
   const MAX_LEVEL = 7;
   const savedMaxLevel = Math.min(MAX_LEVEL, Math.max(1, user?.stats.maxSchulteLevel || 1));
   const difficulty = user?.preferences.difficultyLevel || 'Intermedio';
@@ -31,35 +24,41 @@ const SchulteTable: React.FC<SchulteTableProps> = ({ onBack }) => {
   const [elapsedTime, setElapsedTime] = useState(0); 
   const [isPaused, setIsPaused] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
   const [errors, setErrors] = useState(0);
   const [nextLevelUnlocked, setNextLevelUnlocked] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Dynamic Grid Calculation: Level + 2
+  // Lógica de acceso inteligente: Solo mostrar guía automáticamente la primera vez
+  useEffect(() => {
+      const guideViewed = localStorage.getItem('schulte_guide_v3');
+      if (!guideViewed) {
+          setShowGuide(true);
+          localStorage.setItem('schulte_guide_v3', 'true');
+      }
+  }, []);
+
   const getGridSize = (lvl: number) => {
-      // Safety clamp
       if (lvl >= MAX_LEVEL) return 9;
       return lvl + 2; 
   };
   const gridSize = getGridSize(currentLevel);
 
-  // Thresholds for "Promotion" (Adaptive Difficulty)
   const getSuccessThreshold = (size: number) => {
-     // Approx 1 sec per number for standard is "good"
-     // For a 9x9 (81 numbers), 81 seconds is baseline.
      const count = size * size;
      let multiplier = difficulty === 'Avanzado' ? 0.8 : difficulty === 'Básico' ? 1.4 : 1.1;
      return count * 1.2 * multiplier; 
   };
 
   useEffect(() => {
-    startNewGame(gridSize);
+    prepareGame(gridSize);
     return () => stopTimer();
   }, [gridSize]);
 
   useEffect(() => {
-    if (!isPaused && !isGameOver && startTime > 0) {
+    if (hasStarted && !isPaused && !isGameOver && startTime > 0 && !showGuide) {
       timerRef.current = setInterval(() => {
         setElapsedTime(Date.now() - startTime);
       }, 50);
@@ -67,13 +66,12 @@ const SchulteTable: React.FC<SchulteTableProps> = ({ onBack }) => {
         stopTimer();
     }
     return () => stopTimer();
-  }, [isPaused, isGameOver, startTime]);
+  }, [hasStarted, isPaused, isGameOver, startTime, showGuide]);
 
   const stopTimer = () => { if (timerRef.current) clearInterval(timerRef.current); };
 
-  const startNewGame = (size: number) => {
+  const prepareGame = (size: number) => {
     const nums = Array.from({ length: size * size }, (_, i) => i + 1);
-    // Fisher-Yates shuffle
     for (let i = nums.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [nums[i], nums[j]] = [nums[j], nums[i]];
@@ -82,14 +80,19 @@ const SchulteTable: React.FC<SchulteTableProps> = ({ onBack }) => {
     setCurrentNumber(1);
     setElapsedTime(0);
     setErrors(0);
-    setStartTime(Date.now());
     setIsGameOver(false);
     setIsPaused(false);
+    setHasStarted(false);
     setNextLevelUnlocked(false);
   };
 
+  const startGame = () => {
+      setHasStarted(true);
+      setStartTime(Date.now());
+  };
+
   const handleNumberClick = (num: number) => {
-    if (isGameOver || isPaused) return;
+    if (!hasStarted || isGameOver || isPaused || showGuide) return;
 
     if (num === currentNumber) {
       if (currentNumber === gridSize * gridSize) {
@@ -98,7 +101,6 @@ const SchulteTable: React.FC<SchulteTableProps> = ({ onBack }) => {
         setCurrentNumber(prev => prev + 1);
       }
     } else {
-        // Error handling
         setErrors(prev => prev + 1);
         const btn = document.getElementById(`schulte-btn-${num}`);
         if(btn) {
@@ -119,19 +121,15 @@ const SchulteTable: React.FC<SchulteTableProps> = ({ onBack }) => {
       if (isSuccess && currentLevel < MAX_LEVEL) {
           newLevel = currentLevel + 1;
           setNextLevelUnlocked(true);
-          showToast(`¡Nivel ${currentLevel} dominado! Desbloqueando siguiente...`, 'success');
-      } else if (currentLevel === MAX_LEVEL && isSuccess) {
-          showToast('¡Has alcanzado la maestría máxima (Nivel 7)!', 'success');
-      } else if (!isSuccess) {
-          showToast('Buen intento. Mejora tu tiempo para avanzar.', 'info');
+          showToast(`¡Nivel ${currentLevel} dominado!`, 'success');
       }
 
       await logReading({
           exerciseType: 'schulte',
-          levelOrSpeed: newLevel,
+          levelOrSpeed: currentLevel,
           durationSeconds: totalTimeSeconds,
           wpmCalculated: 0,
-          comprehensionRate: 100, // Attention task
+          comprehensionRate: 100, 
           errors: errors
       });
   };
@@ -139,130 +137,181 @@ const SchulteTable: React.FC<SchulteTableProps> = ({ onBack }) => {
   const formatTime = (ms: number) => {
     const s = Math.floor(ms / 1000);
     const m = Math.floor((ms % 1000) / 10);
-    return `${s}.${m.toString().padStart(2, '0')}`;
+    return `${s}.${m.toString().padStart(2, '0')}s`;
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-background-light dark:bg-background-dark font-display overflow-hidden">
-      <header className="flex-none flex items-center justify-between px-4 py-4 z-10 bg-background-light dark:bg-background-dark shadow-sm">
-        <button onClick={onBack} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-gray-600 dark:text-white transition-colors">
+    <div className="flex-1 flex flex-col h-full bg-background-dark font-display overflow-hidden relative">
+      {showGuide && <TrainingGuide guideKey="schulte" onClose={() => setShowGuide(false)} />}
+      
+      <header className="flex-none flex items-center justify-between px-4 py-4 z-10 bg-background-dark/80 backdrop-blur-md border-b border-white/5">
+        <button onClick={onBack} className="p-2 rounded-full hover:bg-white/10 text-white transition-colors">
             <span className="material-symbols-outlined">arrow_back</span>
         </button>
         
+        {/* Selector de Nivel Mejorado */}
         <div className="flex flex-col items-center">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4 bg-surface-dark px-4 py-1.5 rounded-full border border-white/10 shadow-lg">
                 <button 
-                    disabled={currentLevel <= 1}
+                    disabled={currentLevel <= 1 || hasStarted}
                     onClick={() => setCurrentLevel(p => p - 1)}
-                    className="text-gray-400 hover:text-primary disabled:opacity-30"
+                    className="text-gray-400 hover:text-primary disabled:opacity-20 flex items-center"
                 >
-                    <span className="material-symbols-outlined">remove</span>
+                    <span className="material-symbols-outlined text-lg">chevron_left</span>
                 </button>
-                <span className="text-lg font-bold text-primary leading-none">{gridSize}x{gridSize}</span>
+                <div className="flex flex-col items-center min-w-[60px]">
+                    <span className="text-sm font-black text-primary leading-none uppercase tracking-tighter">{gridSize}x{gridSize}</span>
+                    <span className="text-[8px] text-gray-500 uppercase font-black tracking-[0.2em] mt-0.5">Nivel {currentLevel}</span>
+                </div>
                 <button 
-                    disabled={currentLevel >= MAX_LEVEL || currentLevel >= savedMaxLevel}
+                    disabled={currentLevel >= MAX_LEVEL || currentLevel >= savedMaxLevel || hasStarted}
                     onClick={() => setCurrentLevel(p => p + 1)}
-                    className="text-gray-400 hover:text-primary disabled:opacity-30"
+                    className="text-gray-400 hover:text-primary disabled:opacity-20 flex items-center"
                 >
-                    <span className="material-symbols-outlined">add</span>
+                    <span className="material-symbols-outlined text-lg">chevron_right</span>
                 </button>
             </div>
-            <span className="text-[9px] text-gray-400 uppercase">Nivel {currentLevel}</span>
         </div>
 
-        <button 
-            onClick={() => isPaused ? (setStartTime(Date.now() - elapsedTime), setIsPaused(false)) : setIsPaused(true)}
-            className="p-2 text-gray-400"
-        >
-            <span className="material-symbols-outlined">{isPaused ? 'play_arrow' : 'pause'}</span>
-        </button>
+        <div className="flex items-center gap-1">
+            <button onClick={() => setShowGuide(true)} className="p-2 text-gray-500 hover:text-primary transition-colors">
+                <span className="material-symbols-outlined">help</span>
+            </button>
+            {hasStarted && (
+                <button 
+                    onClick={() => isPaused ? (setStartTime(Date.now() - elapsedTime), setIsPaused(false)) : setIsPaused(true)}
+                    className="p-2 text-gray-500"
+                >
+                    <span className="material-symbols-outlined">{isPaused ? 'play_arrow' : 'pause'}</span>
+                </button>
+            )}
+        </div>
       </header>
 
-      {/* Stats Bar */}
-      <div className="flex-none flex justify-center gap-8 py-2">
+      {/* Barra de Información Principal */}
+      <div className="flex-none flex justify-center gap-12 py-8 bg-gradient-to-b from-primary/5 to-transparent">
           <div className="flex flex-col items-center">
-              <span className="text-[10px] text-gray-500 uppercase font-bold">Objetivo</span>
-              <span className="text-3xl font-bold text-primary animate-pulse">{currentNumber}</span>
+              <span className="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1">Próximo</span>
+              <span className="text-5xl font-black text-primary transition-all duration-300 drop-shadow-[0_0_15px_rgba(25,230,94,0.3)]">{currentNumber}</span>
           </div>
           <div className="flex flex-col items-center">
-              <span className="text-[10px] text-gray-500 uppercase font-bold">Tiempo</span>
-              <span className="text-3xl font-bold font-mono">{formatTime(elapsedTime)}s</span>
+              <span className="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1">Tiempo</span>
+              <span className="text-5xl font-black font-mono text-white tracking-tighter">{formatTime(elapsedTime)}</span>
           </div>
       </div>
 
-      {/* Game Grid */}
-      <main className="flex-1 flex flex-col items-center justify-center p-2 relative w-full h-full overflow-hidden">
-        <div className="flex-1 w-full max-w-2xl flex items-center justify-center p-2">
-            <div className="relative w-full aspect-square max-h-full">
-                {isPaused && (
-                    <div className="absolute inset-0 z-30 bg-black/80 backdrop-blur flex flex-col items-center justify-center rounded-2xl text-white">
-                        <span className="material-symbols-outlined text-6xl mb-2">pause</span>
-                        <p className="font-bold">Pausa</p>
+      <main className="flex-1 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+        
+        {/* Overlay Preparación: Bloquea el inicio automático */}
+        {!hasStarted && (
+            <div className="absolute inset-0 z-40 bg-background-dark/95 flex flex-col items-center justify-center p-10 text-center animate-in fade-in duration-500">
+                <div className="relative mb-8">
+                    <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse"></div>
+                    <div className="size-24 rounded-[2rem] bg-surface-dark border-2 border-primary/30 flex items-center justify-center shadow-2xl relative z-10">
+                        <span className="material-symbols-outlined text-6xl text-primary drop-shadow-[0_0_10px_rgba(25,230,94,0.5)]">grid_view</span>
                     </div>
-                )}
-                
-                <div 
-                    className={`relative grid gap-1.5 sm:gap-2 bg-gray-200 dark:bg-[#1a2c20] p-2 rounded-xl shadow-2xl h-full w-full transition-all`}
-                    style={{ 
-                        gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
-                        gridTemplateRows: `repeat(${gridSize}, minmax(0, 1fr))`
-                    }}
-                >
-                    {/* Fixation Dot (Neuro-UX) */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none size-3 bg-red-500 rounded-full opacity-50"></div>
-
-                    {numbers.map((num) => {
-                        const isFound = num < currentNumber;
-                        // Dynamic Font Scaling for dense grids
-                        const fontSize = gridSize >= 9 ? 'text-lg sm:text-xl' : gridSize >= 7 ? 'text-xl sm:text-2xl' : gridSize >= 5 ? 'text-3xl' : 'text-5xl';
-                        
-                        return (
-                            <button
-                                key={num}
-                                id={`schulte-btn-${num}`}
-                                onClick={() => handleNumberClick(num)}
-                                className={`
-                                    relative flex items-center justify-center font-bold rounded-lg select-none w-full h-full ${fontSize}
-                                    ${isFound 
-                                        ? 'bg-primary/5 text-primary/20 scale-95' 
-                                        : 'bg-white dark:bg-[#2A4532] text-slate-900 dark:text-white shadow-sm active:scale-95'
-                                    }
-                                `}
-                            >
-                                {num}
-                            </button>
-                        );
-                    })}
                 </div>
+                <h2 className="text-3xl font-black text-white mb-3">Preparado para el {gridSize}x{gridSize}</h2>
+                <p className="text-sm text-gray-400 mb-10 max-w-[280px] leading-relaxed">
+                    Fija tu mirada en el <span className="text-red-500 font-bold">punto rojo central</span> y localiza los números sin mover los ojos.
+                </p>
+                <Button onClick={startGame} className="px-12 h-18 text-xl rounded-2xl shadow-[0_15px_35px_rgba(25,230,94,0.25)] hover:scale-105 active:scale-95 transition-all">
+                    Empezar Entrenamiento
+                </Button>
+            </div>
+        )}
+
+        <div className="w-full max-w-md aspect-square relative group">
+            {isPaused && (
+                <div className="absolute inset-0 z-30 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center rounded-[2.5rem] text-white animate-in fade-in duration-300">
+                    <span className="material-symbols-outlined text-7xl mb-4 text-primary animate-pulse">pause_circle</span>
+                    <p className="font-black text-xl uppercase tracking-[0.3em]">En Pausa</p>
+                    <button onClick={() => {setStartTime(Date.now() - elapsedTime); setIsPaused(false);}} className="mt-8 bg-white/10 px-6 py-2 rounded-full font-bold text-sm hover:bg-white/20 transition-all">Reanudar</button>
+                </div>
+            )}
+            
+            <div 
+                className="grid gap-1.5 sm:gap-3 bg-white/5 p-3 sm:p-5 rounded-[2.5rem] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] h-full w-full"
+                style={{ 
+                    gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
+                    gridTemplateRows: `repeat(${gridSize}, minmax(0, 1fr))`
+                }}
+            >
+                {/* Punto de Fijación Central: Guía visual crítica */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none size-2.5 bg-red-500 rounded-full shadow-[0_0_15px_rgba(239,68,68,1)] ring-4 ring-red-500/20"></div>
+
+                {numbers.map((num) => {
+                    const isFound = num < currentNumber;
+                    
+                    // Cálculo de fuente dinámico y optimizado para mobile (Escalado de Neuro-UX)
+                    let fontClass = 'text-4xl';
+                    if (gridSize >= 7) fontClass = 'text-base sm:text-xl';
+                    else if (gridSize >= 5) fontClass = 'text-xl sm:text-3xl';
+                    else fontClass = 'text-3xl sm:text-5xl';
+                    
+                    return (
+                        <button
+                            key={num}
+                            id={`schulte-btn-${num}`}
+                            onClick={() => handleNumberClick(num)}
+                            className={`
+                                relative flex items-center justify-center font-black rounded-[0.8rem] sm:rounded-2xl select-none w-full h-full aspect-square transition-all duration-150 ${fontClass}
+                                ${isFound 
+                                    ? 'bg-primary/5 text-primary/10 border-transparent scale-[0.85]' 
+                                    : 'bg-surface-dark border border-white/5 text-white shadow-xl active:scale-90 hover:border-primary/40 active:bg-primary/20'
+                                }
+                            `}
+                        >
+                            {num}
+                        </button>
+                    );
+                })}
             </div>
         </div>
       </main>
 
-      {/* Game Over Modal */}
+      {/* Resultados Finales */}
       {isGameOver && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-6">
-            <div className="bg-white dark:bg-[#1A2C20] rounded-3xl p-6 w-full max-w-sm text-center animate-in zoom-in-95">
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Resultados</h3>
-                <div className="py-6">
-                    <p className="text-6xl font-mono font-bold text-slate-900 dark:text-white mb-2">{formatTime(elapsedTime)}</p>
-                    <p className="text-sm text-gray-500">Errores: {errors}</p>
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-xl p-6 animate-in fade-in duration-500">
+            <div className="bg-surface-dark border border-primary/20 rounded-[3.5rem] p-10 w-full max-w-sm text-center shadow-2xl animate-in zoom-in-95 duration-300">
+                <div className="size-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-8 border border-primary/20">
+                    <span className="material-symbols-outlined text-5xl text-primary">analytics</span>
                 </div>
-                <div className="flex gap-3">
-                    <Button variant="secondary" onClick={onBack} fullWidth>Salir</Button>
+                <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-tighter">Entrenamiento Finalizado</h3>
+                <div className="py-8 flex flex-col gap-2">
+                    <p className="text-7xl font-black font-mono text-white tracking-tighter drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]">{formatTime(elapsedTime)}</p>
+                    <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.3em]">Tiempo Total</p>
+                    
+                    <div className="flex justify-center gap-10 mt-8">
+                        <div>
+                            <p className="text-2xl font-black text-red-400">{errors}</p>
+                            <p className="text-[9px] text-gray-500 uppercase font-black">Errores</p>
+                        </div>
+                        <div className="w-px h-10 bg-white/5 self-center"></div>
+                        <div>
+                            <p className="text-2xl font-black text-primary">Nivel {currentLevel}</p>
+                            <p className="text-[9px] text-gray-500 uppercase font-black">Superado</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="flex flex-col gap-4 mt-6">
                     <Button onClick={() => {
                         if (nextLevelUnlocked) setCurrentLevel(prev => prev + 1);
-                        startNewGame(nextLevelUnlocked ? gridSize + 1 : gridSize);
+                        prepareGame(nextLevelUnlocked ? gridSize + 1 : gridSize);
                     }} fullWidth>
-                        {nextLevelUnlocked ? 'Siguiente Nivel' : 'Repetir'}
+                        {nextLevelUnlocked ? 'Siguiente Nivel' : 'Reintentar Nivel'}
                     </Button>
+                    <button onClick={onBack} className="py-2 text-gray-500 font-bold text-xs uppercase tracking-widest hover:text-white transition-all">
+                        Volver al Dashboard
+                    </button>
                 </div>
             </div>
         </div>
       )}
       
       <style>{`
-        .animate-shake { animation: shake 0.4s ease-in-out; background-color: rgba(239, 68, 68, 0.2) !important; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        .animate-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border-color: #ef4444 !important; background-color: rgba(239, 68, 68, 0.2) !important; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
       `}</style>
     </div>
   );

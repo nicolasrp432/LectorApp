@@ -1,6 +1,6 @@
 
-import { supabase } from "../utils/supabase";
-import { User, ReadingLog, Book, Flashcard, MemoryPalace, UserStats, UserPreferences } from "../types";
+import { supabase } from "../utils/supabase.ts";
+import { User, ReadingLog, Book, Flashcard, MemoryPalace, UserStats, UserPreferences } from "../types.ts";
 
 export const dbService = {
     // --- Auth & User ---
@@ -54,20 +54,34 @@ export const dbService = {
         } catch (error: any) {
             console.error("[DB] Fallo crítico al crear perfil:", error.message);
             // Intentamos una inserción simplificada si la completa falla por esquema
-            await supabase.from('profiles').insert({
-                id: user.id,
-                email: user.email,
-                name: user.name
-            }).select().catch(() => {});
+            try {
+                await supabase.from('profiles').insert({
+                    id: user.id,
+                    email: user.email,
+                    name: user.name
+                });
+            } catch (e) {
+                console.error("[DB] Error en inserción simplificada");
+            }
         }
     },
 
     async updateUserStats(userId: string, stats: UserStats): Promise<void> {
-        await supabase.from('profiles').update({ stats }).eq('id', userId).catch(() => {});
+        try {
+            const { error } = await supabase.from('profiles').update({ stats }).eq('id', userId);
+            if (error) throw error;
+        } catch (e) {
+            console.error("[DB] Error updating user stats:", e);
+        }
     },
 
     async updateUserPreferences(userId: string, preferences: UserPreferences): Promise<void> {
-        await supabase.from('profiles').update({ preferences }).eq('id', userId).catch(() => {});
+        try {
+            const { error } = await supabase.from('profiles').update({ preferences }).eq('id', userId);
+            if (error) throw error;
+        } catch (e) {
+            console.error("[DB] Error updating preferences:", e);
+        }
     },
 
     // --- Flashcards ---
@@ -86,7 +100,7 @@ export const dbService = {
             interval: Number(row.interval),
             repetition: Number(row.repetition),
             efactor: Number(row.efactor),
-            dueDate: Number(row.due_date),
+            due_date: Number(row.due_date),
             lastReviewed: row.last_reviewed ? Number(row.last_reviewed) : undefined,
             masteryLevel: row.mastery_level ? Number(row.mastery_level) : 0
         }));
@@ -105,18 +119,28 @@ export const dbService = {
             due_date: c.dueDate,
             mastery_level: c.masteryLevel || 0
         }));
-        await supabase.from('flashcards').insert(dbCards).catch(() => {});
+        try {
+            const { error } = await supabase.from('flashcards').insert(dbCards);
+            if (error) throw error;
+        } catch (e) {
+            console.error("[DB] Error adding flashcards:", e);
+        }
     },
 
     async updateFlashcard(card: Flashcard): Promise<void> {
-        await supabase.from('flashcards').update({
-            interval: card.interval,
-            repetition: card.repetition,
-            efactor: card.efactor,
-            due_date: card.dueDate,
-            last_reviewed: card.lastReviewed,
-            mastery_level: card.masteryLevel
-        }).eq('id', card.id).catch(() => {});
+        try {
+            const { error } = await supabase.from('flashcards').update({
+                interval: card.interval,
+                repetition: card.repetition,
+                efactor: card.efactor,
+                due_date: card.dueDate,
+                last_reviewed: card.lastReviewed,
+                mastery_level: card.masteryLevel
+            }).eq('id', card.id);
+            if (error) throw error;
+        } catch (e) {
+            console.error("[DB] Error updating flashcard:", e);
+        }
     },
 
     // --- Books ---
@@ -179,17 +203,22 @@ export const dbService = {
     },
 
     async addReadingLog(log: ReadingLog): Promise<void> {
-        await supabase.from('reading_logs').insert({
-            user_id: log.userId,
-            exercise_type: log.exerciseType,
-            score_data: {
-                levelOrSpeed: log.levelOrSpeed,
-                durationSeconds: log.durationSeconds,
-                wpmCalculated: log.wpmCalculated,
-                telCalculated: log.telCalculated,
-                comprehensionRate: log.comprehensionRate
-            }
-        }).catch(() => {});
+        try {
+            const { error } = await supabase.from('reading_logs').insert({
+                user_id: log.userId,
+                exercise_type: log.exerciseType,
+                score_data: {
+                    levelOrSpeed: log.levelOrSpeed,
+                    durationSeconds: log.durationSeconds,
+                    wpmCalculated: log.wpmCalculated,
+                    telCalculated: log.telCalculated,
+                    comprehensionRate: log.comprehensionRate
+                }
+            });
+            if (error) throw error;
+        } catch (e) {
+            console.error("[DB] Error adding reading log:", e);
+        }
     },
 
     // --- Memory Palaces ---
@@ -212,12 +241,17 @@ export const dbService = {
     },
 
     async addMemoryPalace(palace: MemoryPalace): Promise<void> {
-        await supabase.from('memory_palaces').insert({
-            user_id: palace.userId,
-            name: palace.name,
-            method: palace.method,
-            description: palace.description,
-            items: palace.items
-        }).catch(() => {});
+        try {
+            const { error } = await supabase.from('memory_palaces').insert({
+                user_id: palace.userId,
+                name: palace.name,
+                method: palace.method,
+                description: palace.description,
+                items: palace.items
+            });
+            if (error) throw error;
+        } catch (e) {
+            console.error("[DB] Error adding memory palace:", e);
+        }
     }
 };

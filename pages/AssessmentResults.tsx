@@ -1,7 +1,6 @@
-
 import React, { useEffect, useState } from 'react';
-import { AppRoute } from '../types';
-import { useAuth } from '../context/AuthContext';
+import { AppRoute } from '../types.ts';
+import { useAuth } from '../context/AuthContext.tsx';
 
 interface AssessmentResultsProps {
   wpm: number;

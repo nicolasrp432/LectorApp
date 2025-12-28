@@ -1,12 +1,11 @@
-
 import React, { useRef, useState } from 'react';
-import { AppRoute, Book } from '../types';
-import { extractTextFromPdf } from '../utils/pdf';
-import { analyzeImageToText } from '../services/ai';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
-import { Button } from '../components/ui/Button';
-import { PRACTICE_LIBRARY } from '../constants';
+import { AppRoute, Book } from '../types.ts';
+import { extractTextFromPdf } from '../utils/pdf.ts';
+import { analyzeImageToText } from '../services/ai.ts';
+import { useAuth } from '../context/AuthContext.tsx';
+import { useToast } from '../context/ToastContext.tsx';
+import { Button } from '../components/ui/Button.tsx';
+import { PRACTICE_LIBRARY } from '../constants.ts';
 
 interface LibraryProps {
   onNavigate: (route: AppRoute) => void;

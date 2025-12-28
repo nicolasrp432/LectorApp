@@ -1,12 +1,13 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { AppRoute, Flashcard, Book } from '../types';
-import { calculateSM2 } from '../utils/sm2';
-import { PRESET_FLASHCARD_SETS } from '../constants';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
-import { generateFlashcardsFromText } from '../services/ai';
-import { Button } from '../components/ui/Button';
+import { AppRoute, Flashcard, Book } from '../types.ts';
+import { calculateSM2 } from '../utils/sm2.ts';
+import { PRESET_FLASHCARD_SETS } from '../constants.ts';
+import { useAuth } from '../context/AuthContext.tsx';
+import { useToast } from '../context/ToastContext.tsx';
+import { generateFlashcardsFromText } from '../services/ai.ts';
+import { Button } from '../components/ui/Button.tsx';
+import TrainingGuide from '../components/TrainingGuide.tsx';
 
 type MemoryMode = 'menu' | 'review' | 'create' | 'ai_generate';
 
@@ -17,21 +18,19 @@ const MemoryTraining: React.FC<{ onNavigate: (route: AppRoute) => void }> = ({ o
   const [mode, setMode] = useState<MemoryMode>('menu');
   const [createFront, setCreateFront] = useState('');
   const [createBack, setCreateBack] = useState('');
+  const [showGuide, setShowGuide] = useState(false);
 
-  // AI Generation States
   const [aiInput, setAiInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [tempCards, setTempCards] = useState<Flashcard[]>([]);
   const [aiSourceType, setAiSourceType] = useState<'topic' | 'book'>('topic');
 
-  // Session State - Fixed list for the current session to avoid disappearing cards
   const [activeSessionCards, setActiveSessionCards] = useState<Flashcard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [sessionComplete, setSessionComplete] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Calculate how many cards are due for the menu display
   const dueCount = useMemo(() => {
     const now = Date.now();
     return flashcards.filter(card => card.dueDate <= now).length;
@@ -43,7 +42,6 @@ const MemoryTraining: React.FC<{ onNavigate: (route: AppRoute) => void }> = ({ o
     return { total: flashcards.length, learned, learning, due: dueCount };
   }, [flashcards, dueCount]);
 
-  // Start the review session with a frozen list of cards
   const startReviewSession = () => {
     const now = Date.now();
     const cardsToReview = [...flashcards]
@@ -70,14 +68,11 @@ const MemoryTraining: React.FC<{ onNavigate: (route: AppRoute) => void }> = ({ o
         const currentCard = activeSessionCards[currentIndex];
         if (!currentCard) return;
 
-        // Calculate new SRS data
         const updates = calculateSM2(currentCard, quality);
         const updatedCard = { ...currentCard, ...updates };
         
-        // Persist to global state and DB
         await updateFlashcard(updatedCard);
 
-        // Advance to next or finish
         setTimeout(() => {
             if (currentIndex < activeSessionCards.length - 1) {
                 setIsFlipped(false);
@@ -165,6 +160,10 @@ const MemoryTraining: React.FC<{ onNavigate: (route: AppRoute) => void }> = ({ o
     }
   };
 
+  if (showGuide) {
+      return <TrainingGuide guideKey="flashcards" onClose={() => setShowGuide(false)} />;
+  }
+
   if (sessionComplete) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-background-light dark:bg-background-dark text-center animate-in zoom-in-95">
@@ -185,15 +184,19 @@ const MemoryTraining: React.FC<{ onNavigate: (route: AppRoute) => void }> = ({ o
   if (mode === 'menu') {
       return (
         <div className="flex-1 flex flex-col h-full bg-background-light dark:bg-background-dark font-display overflow-y-auto no-scrollbar pb-32">
-            <header className="p-6 flex items-center gap-4 sticky top-0 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md z-20">
-                <button onClick={() => onNavigate(AppRoute.DASHBOARD)} className="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10">
-                    <span className="material-symbols-outlined">arrow_back</span>
+            <header className="p-6 flex items-center justify-between sticky top-0 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md z-20">
+                <div className="flex items-center gap-4">
+                    <button onClick={() => onNavigate(AppRoute.DASHBOARD)} className="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10">
+                        <span className="material-symbols-outlined">arrow_back</span>
+                    </button>
+                    <h1 className="text-2xl font-bold">Supermemoria</h1>
+                </div>
+                <button onClick={() => setShowGuide(true)} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-gray-400">
+                    <span className="material-symbols-outlined">help</span>
                 </button>
-                <h1 className="text-2xl font-bold">Supermemoria</h1>
             </header>
 
             <main className="px-6 space-y-8 mt-2">
-                {/* Stats Grid */}
                 <div className="grid grid-cols-2 gap-3">
                     <div className="bg-white dark:bg-surface-dark p-4 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
                         <span className="text-[10px] uppercase font-bold text-gray-400">Dominadas</span>
@@ -205,7 +208,6 @@ const MemoryTraining: React.FC<{ onNavigate: (route: AppRoute) => void }> = ({ o
                     </div>
                 </div>
 
-                {/* Main Action Card */}
                 <div 
                     className={`p-6 rounded-[2rem] relative overflow-hidden group cursor-pointer transition-all border
                         ${stats.due > 0 ? 'bg-primary text-black border-primary shadow-xl shadow-primary/20' : 'bg-white dark:bg-surface-dark border-black/5 dark:border-white/5'}
@@ -229,7 +231,6 @@ const MemoryTraining: React.FC<{ onNavigate: (route: AppRoute) => void }> = ({ o
                     <span className="material-symbols-outlined absolute -right-6 -bottom-6 text-[120px] opacity-10 rotate-12 group-hover:scale-110 transition-transform">psychology</span>
                 </div>
 
-                {/* Librería de Mazos (NEW) */}
                 <section className="space-y-4">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 px-1">Librería de Mazos</h3>
                     <div className="flex overflow-x-auto gap-3 no-scrollbar pb-2">
@@ -291,7 +292,9 @@ const MemoryTraining: React.FC<{ onNavigate: (route: AppRoute) => void }> = ({ o
                     <p className="text-[10px] font-bold uppercase text-primary tracking-widest">Repasando</p>
                     <p className="text-xs text-gray-500 font-mono">{currentIndex + 1} de {activeSessionCards.length}</p>
                 </div>
-                <div className="w-10"></div>
+                <button onClick={() => setShowGuide(true)} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-gray-400">
+                    <span className="material-symbols-outlined">help</span>
+                </button>
             </header>
 
             <main className="flex-1 flex flex-col items-center justify-center p-6 perspective-1000">
@@ -351,7 +354,6 @@ const MemoryTraining: React.FC<{ onNavigate: (route: AppRoute) => void }> = ({ o
       );
   }
 
-  // --- MODO CREACIÓN MANUAL ---
   if (mode === 'create') {
     return (
         <div className="flex-1 flex flex-col h-full bg-background-light dark:bg-background-dark pb-20">
@@ -384,7 +386,6 @@ const MemoryTraining: React.FC<{ onNavigate: (route: AppRoute) => void }> = ({ o
     );
   }
 
-  // --- MODO GENERACIÓN IA ---
   if (mode === 'ai_generate') {
       return (
         <div className="flex-1 flex flex-col h-full bg-background-light dark:bg-background-dark pb-20">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ASSESSMENT_TEXT_CONTENT } from '../constants';
-import { AppRoute } from '../types';
+import { ASSESSMENT_TEXT_CONTENT } from '../constants.ts';
+import { AppRoute } from '../types.ts';
 
 interface AssessmentReadingProps {
   onFinishReading: (wpm: number) => void;

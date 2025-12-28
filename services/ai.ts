@@ -1,12 +1,13 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Flashcard, ReadingLog, UserStats, ImageSize, QuizQuestion } from "../types";
+import { Flashcard, ReadingLog, UserStats, ImageSize, QuizQuestion } from "../types.ts";
 
 // --- COACH IA: Chat con Gemini 3 Pro ---
 export const startCoachChat = (history: {role: 'user' | 'model', parts: {text: string}[]}[]) => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
     return ai.chats.create({
         model: 'gemini-3-pro-preview',
+        history: history,
         config: {
             systemInstruction: `Eres el "Lector Coach", un experto en neurociencia cognitiva, lectura rápida y técnicas de supermemoria. 
             Tu misión es ayudar al usuario a mejorar su Tasa de Eficiencia Lectora (TEL) y su retención.
@@ -22,7 +23,7 @@ export const startCoachChat = (history: {role: 'user' | 'model', parts: {text: s
 
 // --- MEMORIA: Generador de Escenas Bizarras ---
 export const generateBizarreStory = async (concept: string, location: string, method: string, context?: string): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
   try {
     const prompt = `
       Actúa como un maestro de mnemotecnia y aprendizaje acelerado.
@@ -59,7 +60,7 @@ export const generateBizarreStory = async (concept: string, location: string, me
 
 // --- IMAGEN: Generador de Imágenes Mnemotécnicas ---
 export const generateMemoryImage = async (story: string, location: string, size: ImageSize = '1K'): Promise<string | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
   try {
     const prompt = `Una escena mental de mnemotecnia bizarra y exagerada. 
     Descripción: ${story}. 
@@ -94,7 +95,7 @@ export const generateMemoryImage = async (story: string, location: string, size:
 
 // --- EVALUACIÓN: Generar cuestionario de comprensión con IA ---
 export const generateReadingQuiz = async (content: string): Promise<QuizQuestion[]> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
   try {
     const prompt = `
       Genera un cuestionario de comprensión lectora de 3 preguntas para el siguiente texto.
@@ -131,7 +132,7 @@ export const generateReadingQuiz = async (content: string): Promise<QuizQuestion
 
 // --- VISION: Analizar Imágenes ---
 export const analyzeImageToText = async (base64Image: string): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
   try {
     const base64Data = base64Image.split(',')[1] || base64Image;
     const response = await ai.models.generateContent({
@@ -151,7 +152,7 @@ export const analyzeImageToText = async (base64Image: string): Promise<string> =
 
 // --- FLASHCARDS: Generación con Gemini ---
 export const generateFlashcardsFromText = async (userId: string, sourceText: string, isTopic: boolean = false): Promise<Flashcard[]> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
   try {
     const prompt = isTopic 
       ? `Genera 5 flashcards educativas sobre el tema: "${sourceText}". Cada flashcard debe tener un frente (pregunta/concepto) y un dorso (respuesta/explicación). Devuelve solo el JSON.`
@@ -194,7 +195,7 @@ export const generateFlashcardsFromText = async (userId: string, sourceText: str
 };
 
 export const editImage = async (base64Image: string, prompt: string): Promise<string | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
   try {
     const matches = base64Image.match(/^data:([^;]+);base64,(.+)$/);
     const mimeType = matches ? matches[1] : 'image/png';

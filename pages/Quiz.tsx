@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { MOCK_QUIZ_QUESTION } from '../constants';
-import { AppRoute } from '../types';
+import { MOCK_QUIZ_QUESTION } from '../constants.ts';
+import { AppRoute } from '../types.ts';
 
 interface QuizProps {
   onNavigate: (route: AppRoute) => void;

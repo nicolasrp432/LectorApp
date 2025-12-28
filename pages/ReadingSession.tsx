@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Book, QuizQuestion, ReadingMode } from '../types';
-import { generateReadingQuiz } from '../services/ai';
-import { useToast } from '../context/ToastContext';
-import { useAuth } from '../context/AuthContext';
-import { Button } from '../components/ui/Button';
-import { PRACTICE_LIBRARY } from '../constants';
-import { extractTextFromPdf } from '../utils/pdf';
+import { Book, QuizQuestion, ReadingMode } from '../types.ts';
+import { generateReadingQuiz } from '../services/ai.ts';
+import { useToast } from '../context/ToastContext.tsx';
+import { useAuth } from '../context/AuthContext.tsx';
+import { Button } from '../components/ui/Button.tsx';
+import { PRACTICE_LIBRARY } from '../constants.ts';
+import { extractTextFromPdf } from '../utils/pdf.ts';
+import TrainingGuide from '../components/TrainingGuide.tsx';
 
 // --- SUB-COMPONENTES INDEPENDIENTES ---
 
@@ -14,7 +15,8 @@ const SessionHeader: React.FC<{
   onBack: () => void; 
   title?: string; 
   mode: ReadingMode;
-}> = ({ onBack, title, mode }) => (
+  onHelp: () => void;
+}> = ({ onBack, title, mode, onHelp }) => (
   <header className="flex-none p-4 flex justify-between items-center z-10 bg-background-light dark:bg-background-dark border-b border-black/5 dark:border-white/5">
     <button onClick={onBack} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
       <span className="material-symbols-outlined">close</span>
@@ -27,7 +29,9 @@ const SessionHeader: React.FC<{
       </span>
       <h3 className="text-xs font-bold truncate max-w-[150px] opacity-70">{title}</h3>
     </div>
-    <div className="w-10"></div>
+    <button onClick={onHelp} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-gray-400">
+      <span className="material-symbols-outlined">help</span>
+    </button>
   </header>
 );
 
@@ -214,6 +218,7 @@ const ReadingSession: React.FC<ReadingSessionProps> = ({ onBack, initialBook, on
   const [isPlaying, setIsPlaying] = useState(false);
   const [wordIndex, setWordIndex] = useState(0);
   const [timerSeconds, setTimerSeconds] = useState(0);
+  const [showGuide, setShowGuide] = useState(false);
   
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
   const [activeQuiz, setActiveQuiz] = useState<QuizQuestion[]>([]);
@@ -229,7 +234,6 @@ const ReadingSession: React.FC<ReadingSessionProps> = ({ onBack, initialBook, on
     return selectedBook.content.split(/\s+/).filter(w => w.length > 0);
   }, [selectedBook]);
 
-  // Lógica de avance y temporizador
   useEffect(() => {
     let timer: any;
     if (isPlaying && phase === 'reading') {
@@ -333,6 +337,10 @@ const ReadingSession: React.FC<ReadingSessionProps> = ({ onBack, initialBook, on
     }
   };
 
+  if (showGuide) {
+      return <TrainingGuide guideKey="reading" onClose={() => setShowGuide(false)} />;
+  }
+
   if (phase === 'select') {
     return (
       <div className="flex flex-col h-full bg-background-light dark:bg-background-dark animate-in fade-in pb-16">
@@ -403,9 +411,12 @@ const ReadingSession: React.FC<ReadingSessionProps> = ({ onBack, initialBook, on
                   <input type="range" min="100" max="1000" step="50" value={speed} onChange={(e) => setSpeed(Number(e.target.value))} className="w-full accent-primary h-1 bg-black/10 dark:bg-white/10 rounded-full appearance-none cursor-pointer" />
               </div>
               <div className="flex gap-3">
-                  <Button variant="secondary" onClick={() => setPhase('select')} fullWidth>Cambiar Texto</Button>
+                  <Button variant="secondary" onClick={() => setPhase('select')} fullWidth>Cambiar</Button>
                   <Button onClick={startExercise} fullWidth>Iniciar</Button>
               </div>
+              <button onClick={() => setShowGuide(true)} className="text-xs text-gray-500 font-bold uppercase tracking-widest hover:text-primary transition-colors flex items-center justify-center gap-1">
+                  <span className="material-symbols-outlined text-sm">info</span> ¿Cómo leer más rápido?
+              </button>
           </div>
       </div>
     );
@@ -418,6 +429,7 @@ const ReadingSession: React.FC<ReadingSessionProps> = ({ onBack, initialBook, on
           onBack={() => { setIsPlaying(false); setPhase('config'); }} 
           title={selectedBook?.title} 
           mode={readingMode} 
+          onHelp={() => setShowGuide(true)}
         />
 
         <main className="flex-1 flex flex-col items-center justify-center p-6 overflow-hidden">

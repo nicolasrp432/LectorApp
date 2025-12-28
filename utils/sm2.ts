@@ -1,5 +1,4 @@
-
-import { Flashcard } from "../types";
+import { Flashcard } from "../types.ts";
 
 /**
  * Algoritmo de Repetición Espaciada SM-2 Refinado

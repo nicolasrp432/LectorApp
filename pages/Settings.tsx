@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
-import { AppRoute, User, UserPreferences } from '../types';
-import { SettingsRow } from '../components/SettingsRow';
-import EditPreferenceModal from '../components/EditPreferenceModal';
+import { AppRoute, User, UserPreferences } from '../types.ts';
+import { SettingsRow } from '../components/SettingsRow.tsx';
+import EditPreferenceModal from '../components/EditPreferenceModal.tsx';
 
 interface SettingsProps {
   onBack: () => void;

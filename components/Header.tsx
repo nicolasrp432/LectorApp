@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Notification } from '../types';
+import { User, Notification } from '../types.ts';
 
 interface HeaderProps {
     user: User;

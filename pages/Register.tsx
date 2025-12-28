@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
-import { AppRoute } from '../types';
-import { supabase } from '../utils/supabase';
+import { AppRoute } from '../types.ts';
+import { supabase } from '../utils/supabase.ts';
 
 interface RegisterProps {
   onRegister: (name: string, email: string) => void;

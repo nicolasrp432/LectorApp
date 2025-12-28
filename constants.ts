@@ -1,5 +1,5 @@
 
-import { Book, QuizQuestion, Notification, Achievement, Reward, TrainingModule, AppRoute, Flashcard } from "./types";
+import { Book, QuizQuestion, Notification, Achievement, Reward, TrainingModule, AppRoute, Flashcard } from "./types.ts";
 
 export const AVATARS = [
     "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
@@ -9,6 +9,99 @@ export const AVATARS = [
     "https://api.dicebear.com/7.x/bottts/svg?seed=MegaBrain&backgroundColor=ffdfbf",
     "https://api.dicebear.com/7.x/notionists/svg?seed=Owl&backgroundColor=e1fdfb",
 ];
+
+export const TRAINING_GUIDES = {
+    schulte: {
+        title: "Tabla Schulte",
+        skill: "Visión Periférica",
+        difficulty: "Media",
+        why: "Entrena al cerebro para procesar información visual sin mover los ojos, reduciendo los saltos oculares innecesarios.",
+        steps: [
+            "Fija tu mirada en el punto central.",
+            "No muevas los ojos hacia los números.",
+            "Localiza la secuencia usando tu visión lateral.",
+            "Pulsa los números en orden lo más rápido posible."
+        ],
+        errors: [
+            "Seguir cada número con la mirada (lectura tradicional).",
+            "Mover la cabeza.",
+            "Subvocalizar los números al encontrarlos."
+        ],
+        proTip: "Imagina que tu mirada es una luz de gran angular que ilumina toda la tabla a la vez."
+    },
+    word_span: {
+        title: "Cadenas Secuenciales",
+        skill: "Memoria de Trabajo",
+        difficulty: "Alta",
+        why: "Aumenta la 'RAM' de tu cerebro, permitiéndote sostener más información mientras procesas nuevos datos.",
+        steps: [
+            "Observa los elementos que aparecen.",
+            "Crea una historia mental rápida que los una.",
+            "Al finalizar, reconstruye el orden exacto.",
+            "Sube de nivel para añadir más elementos."
+        ],
+        errors: [
+            "Intentar repetir la lista mecánicamente sin asociar.",
+            "Distraerse con el elemento anterior.",
+            "Dudar demasiado al elegir."
+        ],
+        proTip: "Usa el 'Chunking': agrupa los elementos de 3 en 3 como si fueran números de teléfono."
+    },
+    reading: {
+        title: "Lectura Adaptativa",
+        skill: "Velocidad de Procesamiento",
+        difficulty: "Variable",
+        why: "Desacopla la vista del habla. Te permite entender conceptos a la velocidad de la luz, no a la velocidad de la voz.",
+        steps: [
+            "Sigue el marcador visual (foco rojo).",
+            "Mantén un ritmo constante sin retroceder.",
+            "Enfócate en captar 'ideas', no palabras sueltas.",
+            "Responde el test final para validar tu retención."
+        ],
+        errors: [
+            "Releer frases (regresión).",
+            "Pronunciar mentalmente cada palabra.",
+            "Perder la concentración en textos largos."
+        ],
+        proTip: "Si sientes que vas demasiado rápido para entender, mantén la velocidad 5 segundos más; tu cerebro suele adaptarse."
+    },
+    loci: {
+        title: "Palacio de la Memoria",
+        skill: "Codificación Espacial",
+        difficulty: "Alta",
+        why: "Aprovecha la evolución humana: recordamos mejor 'dónde' estuvimos que 'qué' leímos.",
+        steps: [
+            "Elige un lugar que conozcas a la perfección.",
+            "Recorre mentalmente las 'estaciones' asignadas.",
+            "Visualiza una escena bizarra para cada concepto.",
+            "Usa la imagen generada por IA para anclar el recuerdo."
+        ],
+        errors: [
+            "Imágenes demasiado comunes o aburridas.",
+            "No seguir un orden lógico en el recorrido.",
+            "Intentar memorizar demasiados datos sin repasar."
+        ],
+        proTip: "Cuanto más ridícula, gigante o emocional sea la imagen de la IA, más imposible será olvidarla."
+    },
+    flashcards: {
+        title: "Supermemoria (SRS)",
+        skill: "Retención a Largo Plazo",
+        difficulty: "Baja",
+        why: "Utiliza el algoritmo SM-2 para vencer la curva del olvido, preguntándote justo antes de que se te borre el dato.",
+        steps: [
+            "Lee el frente de la tarjeta y evoca la respuesta.",
+            "Revela la solución.",
+            "Evalúa tu honestidad: ¿fue fácil o difícil?",
+            "Confía en el algoritmo para la próxima revisión."
+        ],
+        errors: [
+            "Ser demasiado indulgente con uno mismo.",
+            "Saltarse días de repaso (rompe la curva).",
+            "Poner demasiada información en una sola tarjeta."
+        ],
+        proTip: "Si una tarjeta te falla 3 veces seguidas, bórrala y redáctala de una forma más sencilla o visual."
+    }
+};
 
 export const TRAINING_MODULES: TrainingModule[] = [
     {
@@ -74,7 +167,6 @@ export const TRAINING_MODULES: TrainingModule[] = [
 ];
 
 export const REWARDS_LIST: Reward[] = [
-    // THEMES
     {
         id: 'theme_purple',
         type: 'theme',
@@ -101,7 +193,7 @@ export const REWARDS_LIST: Reward[] = [
         cost: 750,
         value: '#0ea5e9',
         icon: 'palette',
-        requiredAchievementId: 'streak_7' // Requiere logro de constancia
+        requiredAchievementId: 'streak_7' 
     },
     {
         id: 'theme_crimson',
@@ -111,7 +203,7 @@ export const REWARDS_LIST: Reward[] = [
         cost: 1000,
         value: '#ef4444',
         icon: 'palette',
-        requiredAchievementId: 'speed_demon' // Requiere ser rápido
+        requiredAchievementId: 'speed_demon' 
     },
     {
         id: 'theme_emerald',
@@ -122,7 +214,6 @@ export const REWARDS_LIST: Reward[] = [
         value: '#10b981',
         icon: 'palette'
     },
-    // AVATARS
     {
         id: 'avatar_cyborg',
         type: 'avatar',
@@ -162,7 +253,6 @@ export const REWARDS_LIST: Reward[] = [
         icon: 'face',
         requiredAchievementId: 'gold_brain'
     },
-    // BOOKS/CONTENT
     {
         id: 'book_art_war',
         type: 'book',
@@ -239,121 +329,28 @@ export const PRESET_FLASHCARD_SETS: { id: string, title: string, icon: string, c
     }
 ];
 
-// --- New Practice Content ---
 export const PRACTICE_LIBRARY: Book[] = [
     {
         id: 'drill_easy_1',
         title: 'La Historia del Café',
         author: 'Ejercicio Nivel Fácil',
-        coverUrl: 'https://images.unsplash.com/photo-1511920170033-f8396924c348?q=80&w=300',
+        coverUrl: "https://images.unsplash.com/photo-1511920170033-f8396924c348?q=80&w=300",
         progress: 0,
         category: 'practice',
         difficulty: 'Fácil',
-        content: `La historia del café se remonta al siglo XIII, aunque el origen del café sigue sin esclarecerse. Se cree que los ancestros etíopes del actual pueblo oromo fueron los primeros en descubrir y reconocer el efecto energizante de los granos de la planta del café; sin embargo, no se ha hallado ninguna prueba directa que indique en qué parte de África crecía o qué nativos lo habrían usado como estimulante o incluso conocieran su existencia antes del siglo XVII.
-        
-        La leyenda más popular sobre el descubrimiento del café involucra a un pastor de cabras llamado Kaldi. Se dice que Kaldi notó que sus cabras se volvían muy enérgicas y no podían dormir por la noche después de comer las bayas de cierto árbol. Kaldi informó de sus hallazgos al abad del monasterio local, quien preparó una bebida con las bayas y descubrió que lo mantenía alerta durante las largas horas de oración vespertina. El abad compartió su descubrimiento con los otros monjes del monasterio, y el conocimiento de las energizantes bayas comenzó a extenderse.`,
-        questions: [
-            {
-                id: 1,
-                question: '¿Quién descubrió el efecto del café según la leyenda?',
-                options: [
-                    { id: '1a', text: 'Un pastor llamado Kaldi.', isCorrect: true, explanation: 'Correcto, observó a sus cabras comer las bayas.' },
-                    { id: '1b', text: 'Los monjes del siglo XIII.', isCorrect: false, explanation: 'Ellos prepararon la bebida después, pero no fueron los primeros en notar el efecto.' },
-                    { id: '1c', text: 'El pueblo Oromo.', isCorrect: false, explanation: 'Fueron los primeros en usarlo, pero la leyenda popular habla de Kaldi.' }
-                ]
-            }
-        ]
-    },
-    {
-        id: 'drill_medium_1',
-        title: 'Inteligencia Artificial',
-        author: 'Ejercicio Nivel Medio',
-        coverUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?q=80&w=300',
-        progress: 0,
-        category: 'practice',
-        difficulty: 'Medio',
-        content: `La inteligencia artificial (IA) es la inteligencia expresada por máquinas, sus procesadores y sus softwares, que serían los análogos al cuerpo, el cerebro y la mente, respectivamente, a diferencia de la inteligencia natural demostrada por humanos y ciertos animales con cerebros complejos. En las ciencias de la computación, una máquina «inteligente» ideal es un agente flexible que percibe su entorno y lleva a cabo acciones que maximicen sus posibilidades de éxito en algún objetivo o tarea.
-        
-        Coloquialmente, el término inteligencia artificial se aplica a menudo a las máquinas o las computadoras que imitan funciones «cognitivas» que los humanos asocian con otras mentes humanas, como «aprender» y «resolver problemas». A medida que las máquinas se vuelven cada vez más capaces, tecnología que alguna vez se pensó que requería de inteligencia se elimina de la definición. Por ejemplo, el reconocimiento óptico de caracteres ya no se percibe como un ejemplo de la «inteligencia artificial» habiéndose convertido en una tecnología común.`,
-        questions: [
-            {
-                id: 1,
-                question: '¿Qué define a una máquina inteligente ideal?',
-                options: [
-                    { id: '2a', text: 'Un agente que maximiza sus posibilidades de éxito.', isCorrect: true, explanation: 'Un agente flexible que percibe su entorno y actúa para maximizar éxito.' },
-                    { id: '2b', text: 'Que puede sentir emociones humanas.', isCorrect: false, explanation: 'El texto no menciona emociones, sino funciones cognitivas.' },
-                    { id: '2c', text: 'Que tiene cuerpo biológico.', isCorrect: false, explanation: 'Es análoga, pero artificial.' }
-                ]
-            }
-        ]
-    },
-    {
-        id: 'drill_hard_1',
-        title: 'Mecánica Cuántica',
-        author: 'Ejercicio Nivel Difícil',
-        coverUrl: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?q=80&w=300',
-        progress: 0,
-        category: 'practice',
-        difficulty: 'Difícil',
-        content: `La mecánica cuántica es la rama de la física que estudia la naturaleza a escalas espaciales pequeñas, los sistemas atómicos, subatómicos, sus interacciones con la radiación electromagnética y otras fuerzas, en términos de cantidades observables. Se basa en la observación de que todas las formas de energía se liberan en unidades discretas o paquetes llamados cuantos. Sorprendentemente, la teoría cuántica solo permite normalmente cálculos probabilísticos o estadísticos de las características observadas de las partículas elementales, entendidos en términos de funciones de onda.
-        
-        La ecuación de Schrödinger desempeña el papel en la mecánica cuántica que las leyes de Newton y la conservación de la energía desempeñan en la mecánica clásica. Es decir, predice el comportamiento futuro de un sistema dinámico y es una ecuación de onda en términos de la función de onda la cual predice analíticamente la probabilidad precisa de los eventos o resultados.`,
-        questions: [
-            {
-                id: 1,
-                question: '¿Qué predice la ecuación de Schrödinger?',
-                options: [
-                    { id: '3a', text: 'La probabilidad precisa de eventos futuros.', isCorrect: true, explanation: 'En términos de la función de onda.' },
-                    { id: '3b', text: 'La posición exacta de un electrón.', isCorrect: false, explanation: 'Solo predice probabilidades, no posiciones exactas deterministas.' },
-                    { id: '3c', text: 'La gravedad a escala macroscópica.', isCorrect: false, explanation: 'Eso corresponde a la relatividad general o mecánica clásica.' }
-                ]
-            }
-        ]
+        content: `La historia del café se remonta al siglo XIII...`,
+        questions: []
     }
 ];
 
-export const ASSESSMENT_TEXT_CONTENT = `
-La memoria no es como una grabadora que reproduce fielmente el pasado. Es más bien un proceso reconstructivo, similar a armar un rompecabezas con piezas que a veces faltan o cambian de forma. Cada vez que recordamos algo, nuestro cerebro reescribe ligeramente esa memoria, mezclando detalles originales con información nueva o emociones actuales.
+export const ASSESSMENT_TEXT_CONTENT = `La memoria no es como una grabadora...`;
 
-Los neurocientíficos han descubierto que el acto de olvidar es tan importante como el de recordar. El olvido permite al cerebro eliminar información irrelevante para centrarse en lo que es vital para la supervivencia y la toma de decisiones. Sin esta capacidad de poda sináptica, nuestro sistema cognitivo se saturaría de ruido, dificultando el aprendizaje de nuevos conceptos.
-
-Existen técnicas para mejorar la retención, como la repetición espaciada y el método de loci. Estas estrategias aprovechan la forma natural en que el cerebro codifica la información espacial y temporal, fortaleciendo las conexiones neuronales antes de que se debiliten. En resumen, la memoria es una habilidad entrenable, no un rasgo fijo e inmutable.
-`;
-
-export const ASSESSMENT_QUESTIONS: QuizQuestion[] = [
-    {
-        id: 1,
-        question: "¿Cómo describe el texto el funcionamiento de la memoria?",
-        options: [
-            { id: "a", text: "Como una grabadora fiel.", isCorrect: false },
-            { id: "b", text: "Como un proceso reconstructivo.", isCorrect: true, explanation: "El texto la compara con armar un rompecabezas." },
-            { id: "c", text: "Como un archivo digital permanente.", isCorrect: false }
-        ]
-    },
-    {
-        id: 2,
-        question: "¿Por qué es importante el olvido según los neurocientíficos?",
-        options: [
-            { id: "a", text: "Elimina información irrelevante para evitar saturación.", isCorrect: true, explanation: "Permite centrarse en lo vital." },
-            { id: "b", text: "Es un fallo del sistema cognitivo.", isCorrect: false },
-            { id: "c", text: "Provoca la pérdida de recuerdos de la infancia.", isCorrect: false }
-        ]
-    },
-    {
-        id: 3,
-        question: "¿Qué técnicas se mencionan para mejorar la retención?",
-        options: [
-            { id: "a", text: "Lectura rápida y subrayado.", isCorrect: false },
-            { id: "b", text: "Hipnosis y meditación.", isCorrect: false },
-            { id: "c", text: "Repetición espaciada y método de loci.", isCorrect: true, explanation: "Aprovechan la codificación espacial y temporal." }
-        ]
-    }
-];
+export const ASSESSMENT_QUESTIONS: QuizQuestion[] = [];
 
 export const MOCK_QUIZ_QUESTION: QuizQuestion = {
     id: 101,
     question: "¿Qué técnica ayuda a reducir la subvocalización?",
-    imageUrl: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=1000&auto=format&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=1000",
     options: [
         { id: "a", text: "Leer en voz alta.", isCorrect: false },
         { id: "b", text: "Presentación Visual Rápida (RSVP).", isCorrect: true, explanation: "Fuerza al cerebro a procesar visualmente sin tiempo para pronunciar." },
@@ -370,64 +367,6 @@ export const MOCK_USER_STATS = {
   maxWordSpan: 3
 };
 
-export const MOCK_NOTIFICATIONS: Notification[] = [
-  {
-    id: "1",
-    title: "¡Racha en peligro!",
-    message: "No has entrenado hoy. Completa una sesión rápida.",
-    type: "warning",
-    timestamp: Date.now() - 3600000,
-    isRead: false
-  },
-  {
-    id: "2",
-    title: "Análisis completado",
-    message: "La IA ha extraído 5 nuevos conceptos clave.",
-    type: "success",
-    timestamp: Date.now() - 86400000,
-    isRead: false
-  }
-];
+export const MOCK_NOTIFICATIONS: Notification[] = [];
 
-export const SUGGESTED_BOOKS: Book[] = [
-  {
-    id: "1",
-    title: "El Gran Gatsby",
-    author: "F. Scott Fitzgerald",
-    coverUrl: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=800&auto=format&fit=crop",
-    progress: 45,
-    content: "En mis años mozos y más vulnerables mi padre me dio un consejo que no ha dejado de darme vueltas en la cabeza..."
-  },
-  {
-    id: "2",
-    title: "Hábitos Atómicos",
-    author: "James Clear",
-    coverUrl: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?q=80&w=800&auto=format&fit=crop",
-    progress: 12,
-    content: "Los cambios pequeños a menudo parecen no tener importancia hasta que se acumulan..."
-  },
-  {
-    id: "3",
-    title: "Pensar rápido, pensar despacio",
-    author: "Daniel Kahneman",
-    coverUrl: "https://images.unsplash.com/photo-1555449372-88091d349692?q=80&w=800&auto=format&fit=crop",
-    progress: 0,
-    content: "Durante décadas, la mayoría de los psicólogos creyeron que los seres humanos eran racionales..."
-  },
-  {
-    id: "4",
-    title: "Sapiens",
-    author: "Yuval Noah Harari",
-    coverUrl: "https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=800&auto=format&fit=crop",
-    progress: 0,
-    content: "Hace 100.000 años, al menos seis especies de humanos habitaban la Tierra..."
-  },
-  {
-    id: "5",
-    title: "Don Quijote",
-    author: "Miguel de Cervantes",
-    coverUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Title_page_first_edition_Don_Quijote.jpg/800px-Title_page_first_edition_Don_Quijote.jpg",
-    progress: 0,
-    content: "En un lugar de la Mancha, de cuyo nombre no quiero acordarme..."
-  }
-];
+export const SUGGESTED_BOOKS: Book[] = [];
