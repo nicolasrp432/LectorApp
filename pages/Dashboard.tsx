@@ -1,13 +1,13 @@
+
 import React, { useMemo, useState } from 'react';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import { AppRoute, ReadingLog } from '../types.ts';
+import { AppRoute, TrainingModule } from '../types.ts';
 import { useAuth } from '../context/AuthContext.tsx';
-import { Button } from '../components/ui/Button.tsx';
-import { TRAINING_MODULES } from '../constants.ts';
+import { TRAINING_MODULES, LEARNING_MODULES } from '../constants.ts';
 import { AICoachChat } from '../components/AICoachChat.tsx';
 
 interface DashboardProps {
-    onNavigate: (route: AppRoute) => void;
+    onNavigate: (route: AppRoute, params?: any) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
@@ -15,27 +15,31 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const [metricIndex, setMetricIndex] = useState(0);
   const [isChatOpen, setIsChatOpen] = useState(false);
   
+  // Optimización: Cálculos estadísticos segregados para evitar re-renders innecesarios
   const stats = useMemo(() => {
-    if (!user) return null;
+    if (!user || readingLogs.length === 0) return null;
     
-    // Filtrar sesiones de lectura reales
-    const sessions = readingLogs.filter(l => 
-        (l.exerciseType === 'reading_session' || 
-         l.exerciseType === 'focal' || 
-         l.exerciseType === 'campo_visual' || 
-         l.exerciseType === 'expansion' || 
-         l.exerciseType === 'lectura_profunda') && 
-        l.telCalculated !== undefined
-    ).sort((a,b) => a.timestamp - b.timestamp);
+    // Filtrado eficiente
+    const sessionLogs = [];
+    const memoryLogs = [];
+    
+    // Procesar en un solo bucle para O(n)
+    for (const log of readingLogs) {
+        if (log.telCalculated !== undefined && 
+           ['reading_session', 'focal', 'campo_visual', 'expansion', 'lectura_profunda'].includes(log.exerciseType)) {
+            sessionLogs.push(log);
+        }
+        if (['word_span', 'loci'].includes(log.exerciseType)) {
+            memoryLogs.push(log);
+        }
+    }
 
-    const memoryLogs = readingLogs.filter(l => l.exerciseType === 'word_span' || l.exerciseType === 'loci');
-    
     const metricsData = [
         {
             title: 'Eficiencia (TEL)',
             key: 'telCalculated',
-            color: '#19e65e',
-            data: sessions.slice(-10).map((s, i) => ({ name: `S${i+1}`, value: s.telCalculated || 0 })),
+            color: 'var(--primary)',
+            data: sessionLogs.slice(0, 10).reverse().map((s, i) => ({ name: i, value: s.telCalculated || 0 })),
             icon: 'analytics',
             unit: ''
         },
@@ -43,7 +47,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             title: 'Velocidad (WPM)',
             key: 'wpmCalculated',
             color: '#3b82f6',
-            data: sessions.slice(-10).map((s, i) => ({ name: `S${i+1}`, value: s.wpmCalculated || 0 })),
+            data: sessionLogs.slice(0, 10).reverse().map((s, i) => ({ name: i, value: s.wpmCalculated || 0 })),
             icon: 'speed',
             unit: 'wpm'
         },
@@ -51,48 +55,39 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             title: 'Precisión Memoria',
             key: 'comprehensionRate',
             color: '#f97316',
-            data: memoryLogs.slice(-10).map((s, i) => ({ name: `M${i+1}`, value: s.comprehensionRate || 0 })),
+            data: memoryLogs.slice(0, 10).reverse().map((s, i) => ({ name: i, value: s.comprehensionRate || 0 })),
             icon: 'psychology',
             unit: '%'
-        },
-        {
-            title: 'Consistencia',
-            key: 'durationSeconds',
-            color: '#a855f7',
-            data: readingLogs.slice(-10).map((s, i) => ({ name: `D${i+1}`, value: Math.round(s.durationSeconds / 60) })),
-            icon: 'calendar_today',
-            unit: 'm'
         }
     ];
 
-    const getModuleStats = (moduleId: string) => {
-        let type = moduleId;
-        if(moduleId === 'rsvp') type = 'reading_session';
-        const logs = readingLogs.filter(l => l.exerciseType === type || (moduleId === 'rsvp' && l.exerciseType === 'lectura_profunda'));
-        
+    const getRecommendation = () => {
+        const lastSchulte = readingLogs.find(l => l.exerciseType === 'schulte');
+        if (lastSchulte && (lastSchulte.errors || 0) > 3) {
+            return {
+                title: "Refuerza tu Foco",
+                desc: "Tuviste varios errores en tu última Tabla Schulte. Vamos a calmar la vista.",
+                module: TRAINING_MODULES.find(m => m.id === 'schulte')
+            };
+        }
         return {
-            totalSessions: logs.length,
-            maxLevel: logs.length ? Math.max(...logs.map(l => l.levelOrSpeed)) : (moduleId === 'schulte' ? user.stats.maxSchulteLevel : (moduleId === 'word_span' ? user.stats.maxWordSpan : 0)),
-            avgTime: logs.length ? (logs.reduce((a, b) => a + b.durationSeconds, 0) / logs.length).toFixed(1) : '--',
-            bestScore: logs.length ? Math.max(...logs.map(l => l.telCalculated || 0)) : 0
+            title: "Desafío de Velocidad",
+            desc: "Tu TEL actual es sólido. ¿Probamos subir 50 WPM hoy?",
+            module: TRAINING_MODULES.find(m => m.id === 'rsvp')
         };
     };
 
-    return { 
-        metricsData,
-        isStreakSafe: (Date.now() - user.stats.lastActiveDate) < (24 * 60 * 60 * 1000 * 1.5),
-        moduleData: TRAINING_MODULES.reduce((acc, m) => ({...acc, [m.id]: getModuleStats(m.id)}), {})
-    };
-  }, [user, readingLogs]);
+    return { metricsData, recommendation: getRecommendation() };
+  }, [readingLogs, user?.id]); // Solo re-memoizar si cambian los logs o el ID de usuario
 
-  if (loading || !user) return <div className="p-6">Cargando perfil...</div>;
+  if (loading || !user) return <div className="p-10 flex justify-center items-center h-full"><div className="size-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div></div>;
 
   const currentMetric = stats?.metricsData[metricIndex];
 
   return (
     <div className="flex-1 flex flex-col gap-6 px-0 pb-32 overflow-y-auto no-scrollbar bg-background-light dark:bg-background-dark">
       
-      {/* Panel Principal Title */}
+      {/* Header Racha & XP */}
       <div className="px-5 mt-4">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Panel Principal</h1>
 
@@ -121,28 +116,31 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* Carrusel de Métricas Reales */}
+      {/* Recomendación */}
       <section className="px-5">
-        <div className="h-[280px] rounded-3xl border border-gray-200 dark:border-white/5 bg-white dark:bg-surface-dark p-0 shadow-sm overflow-hidden flex flex-col relative min-h-[280px] group">
-             
-             <button 
-                onClick={() => setMetricIndex(p => (p - 1 + stats!.metricsData.length) % stats!.metricsData.length)}
-                className="absolute left-2 top-1/2 -translate-y-1/2 size-8 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center z-30 opacity-0 group-hover:opacity-100 transition-opacity"
-             >
-                <span className="material-symbols-outlined text-sm">chevron_left</span>
-             </button>
-             <button 
-                onClick={() => setMetricIndex(p => (p + 1) % stats!.metricsData.length)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 size-8 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center z-30 opacity-0 group-hover:opacity-100 transition-opacity"
-             >
-                <span className="material-symbols-outlined text-sm">chevron_right</span>
-             </button>
+          <div 
+            onClick={() => stats?.recommendation.module && onNavigate(stats.recommendation.module.route)}
+            className="bg-primary/5 border border-primary/20 rounded-[2rem] p-5 flex items-center gap-4 cursor-pointer hover:bg-primary/10 transition-all group"
+          >
+              <div className="size-12 rounded-full bg-primary flex items-center justify-center text-black shrink-0">
+                  <span className="material-symbols-outlined font-black">lightbulb</span>
+              </div>
+              <div className="flex-1">
+                  <h3 className="text-xs font-black uppercase text-primary tracking-widest mb-0.5">{stats?.recommendation.title || 'Inicia hoy'}</h3>
+                  <p className="text-sm text-gray-300 leading-tight italic line-clamp-2">"{stats?.recommendation.desc || 'Toma tu primer test para calibrar tu cerebro.'}"</p>
+              </div>
+              <span className="material-symbols-outlined text-primary opacity-0 group-hover:opacity-100 transition-opacity">arrow_forward</span>
+          </div>
+      </section>
 
+      {/* Gráfica de Progreso */}
+      <section className="px-5">
+        <div className="h-[280px] rounded-3xl border border-gray-200 dark:border-white/5 bg-white dark:bg-surface-dark p-0 shadow-sm overflow-hidden flex flex-col relative group">
              <div className="p-6 pb-2 z-10 flex justify-between items-start">
-                <div className="animate-in slide-in-from-left-2" key={currentMetric?.title}>
+                <div>
                     <div className="flex items-center gap-2 text-gray-400 mb-1">
-                        <span className="material-symbols-outlined text-sm" style={{ color: currentMetric?.color }}>{currentMetric?.icon}</span>
-                        <p className="text-[10px] uppercase font-bold tracking-widest">{currentMetric?.title}</p>
+                        <span className="material-symbols-outlined text-sm" style={{ color: currentMetric?.color }}>{currentMetric?.icon || 'analytics'}</span>
+                        <p className="text-[10px] uppercase font-bold tracking-widest">{currentMetric?.title || 'Sin datos'}</p>
                     </div>
                     <p className="text-4xl font-bold tracking-tighter text-slate-900 dark:text-white">
                         {currentMetric?.data.length ? currentMetric.data[currentMetric.data.length - 1].value : '0'}{currentMetric?.unit}
@@ -150,83 +148,86 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 </div>
                 <div className="flex gap-1.5 mt-2">
                     {stats?.metricsData.map((_, i) => (
-                        <div key={i} className={`size-1.5 rounded-full transition-all ${i === metricIndex ? 'w-4 bg-primary' : 'bg-gray-600'}`}></div>
+                        <button key={i} onClick={() => setMetricIndex(i)} className={`size-2 rounded-full transition-all ${i === metricIndex ? 'w-5 bg-primary' : 'bg-gray-600'}`}></button>
                     ))}
                 </div>
              </div>
 
-             <div className="absolute bottom-0 left-0 right-0 top-24 w-full px-2" style={{ minHeight: '160px' }}>
+             <div className="absolute bottom-0 left-0 right-0 top-24 w-full">
                  {currentMetric && currentMetric.data.length > 0 ? (
                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={currentMetric.data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <AreaChart data={currentMetric.data} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                             <defs>
                                 <linearGradient id={`color-${metricIndex}`} x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor={currentMetric.color} stopOpacity={0.3}/>
                                 <stop offset="95%" stopColor={currentMetric.color} stopOpacity={0}/>
                                 </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff10" />
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff05" />
                             <XAxis dataKey="name" hide />
                             <YAxis hide />
                             <Tooltip 
-                                contentStyle={{ backgroundColor: '#112116', border: '1px solid #ffffff20', borderRadius: '12px', fontSize: '12px' }}
-                                itemStyle={{ color: currentMetric.color, fontWeight: 'bold' }}
-                                labelStyle={{ color: '#9ca3af', marginBottom: '4px' }}
+                                contentStyle={{ backgroundColor: '#112116', border: '1px solid #ffffff10', borderRadius: '12px' }}
+                                itemStyle={{ color: currentMetric.color }}
                             />
-                            <Area 
-                                type="monotone" 
-                                dataKey="value" 
-                                stroke={currentMetric.color} 
-                                strokeWidth={3} 
-                                fill={`url(#color-${metricIndex})`} 
-                                animationDuration={1000}
-                            />
+                            <Area type="monotone" dataKey="value" stroke={currentMetric.color} strokeWidth={3} fill={`url(#color-${metricIndex})`} />
                         </AreaChart>
                      </ResponsiveContainer>
                  ) : (
-                     <div className="flex h-full items-center justify-center text-xs text-gray-500">
-                         Sin datos suficientes. Empieza un entrenamiento.
-                     </div>
+                     <div className="flex h-full items-center justify-center text-xs text-gray-500">Entrena para ver tu evolución gráfica</div>
                  )}
              </div>
         </div>
       </section>
 
-      {/* Entrenamientos */}
+      {/* Entrenamientos Rápidos */}
       <section>
           <div className="flex items-center justify-between px-5 mb-3">
              <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Entrenamientos</h3>
-             <span onClick={() => onNavigate(AppRoute.TRAININGS)} className="text-xs text-primary font-bold cursor-pointer hover:underline">Ver Todo</span>
           </div>
           <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 px-5 pb-4 no-scrollbar">
-              {TRAINING_MODULES.map((module) => {
-                  const mStats = stats?.moduleData[module.id] || { totalSessions: 0, maxLevel: 0, avgTime: '--' };
-                  return (
+              {TRAINING_MODULES.map((module) => (
                     <div 
                         key={module.id}
                         onClick={() => onNavigate(module.route)}
-                        className="snap-center shrink-0 w-72 h-44 bg-white dark:bg-surface-dark rounded-3xl p-5 border border-gray-200 dark:border-white/5 shadow-sm flex flex-col justify-between hover:border-primary/40 transition-all cursor-pointer group active:scale-[0.97]"
+                        className="snap-center shrink-0 w-64 bg-white dark:bg-surface-dark rounded-3xl p-5 border border-gray-200 dark:border-white/5 shadow-sm hover:border-primary/40 transition-all cursor-pointer group"
                     >
-                        <div className="flex justify-between items-start">
-                            <div className={`size-12 rounded-2xl flex items-center justify-center ${module.colorClass}`}>
-                                <span className="material-symbols-outlined text-2xl">{module.icon}</span>
-                            </div>
-                            <div className="bg-gray-100 dark:bg-white/5 size-8 rounded-full flex items-center justify-center group-hover:bg-primary group-hover:text-black transition-colors">
-                                <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                            </div>
+                        <div className={`size-12 rounded-2xl flex items-center justify-center mb-4 ${module.colorClass}`}>
+                            <span className="material-symbols-outlined text-2xl">{module.icon}</span>
                         </div>
+                        <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{module.title}</h4>
+                        <p className="text-xs text-gray-500 line-clamp-2">{module.description}</p>
+                    </div>
+              ))}
+          </div>
+      </section>
+
+      {/* Módulos de Teoría */}
+      <section>
+          <div className="flex items-center justify-between px-5 mb-3">
+             <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Cursos</h3>
+          </div>
+          <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 px-5 pb-4 no-scrollbar">
+              {LEARNING_MODULES.map((module) => {
+                  const progress = user.learningProgress?.find(p => p.moduleId === module.id);
+                  return (
+                    <div 
+                        key={module.id}
+                        onClick={() => onNavigate(AppRoute.LEARNING_MODULE, { moduleId: module.id })}
+                        className={`snap-center shrink-0 w-72 bg-gradient-to-br ${module.color} rounded-[2rem] p-6 text-white shadow-xl flex flex-col justify-between cursor-pointer transition-transform active:scale-95`}
+                    >
                         <div>
-                            <h4 className="text-lg font-bold text-slate-900 dark:text-white">{module.title}</h4>
-                            <div className="grid grid-cols-2 gap-2 mt-2">
-                                {module.metrics.slice(0, 2).map((metric, idx) => (
-                                    <div key={idx} className="bg-gray-50 dark:bg-black/20 rounded-xl p-2">
-                                        <p className="text-[10px] text-gray-400 uppercase truncate">{metric.label}</p>
-                                        <p className="text-sm font-bold text-slate-900 dark:text-white">
-                                            {mStats[metric.key as keyof typeof mStats] || '0'}{metric.unit || ''}
-                                        </p>
-                                    </div>
-                                ))}
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="px-3 py-1 bg-white/20 rounded-full text-[10px] font-bold uppercase tracking-widest">{module.duration}</div>
+                                <span className="material-symbols-outlined opacity-50">{progress?.isCompleted ? 'check_circle' : 'play_circle'}</span>
                             </div>
+                            <h4 className="text-xl font-black leading-tight mb-2">{module.title}</h4>
+                        </div>
+                        <div className="mt-6 flex items-center gap-2">
+                            <div className="flex-1 h-1 bg-white/20 rounded-full overflow-hidden">
+                                <div className="h-full bg-white" style={{ width: progress?.isCompleted ? '100%' : `${((progress?.completedSteps || 0) / module.steps.length) * 100}%` }}></div>
+                            </div>
+                            <span className="text-[9px] font-bold uppercase">{progress?.isCompleted ? 'Listo' : 'Seguir'}</span>
                         </div>
                     </div>
                   );
@@ -234,9 +235,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           </div>
       </section>
 
-      {/* Coach IA - Diseño optimizado sin bordes */}
-      <section className="px-5 transition-all duration-500 ease-in-out">
-          <div className={`rounded-3xl transition-all duration-500 ease-in-out overflow-hidden ${isChatOpen ? 'max-h-[500px] shadow-2xl' : 'max-h-[84px] shadow-lg'}`}>
+      {/* Coach Chat */}
+      <section className="px-5">
+          <div className={`rounded-3xl overflow-hidden transition-all duration-500 ${isChatOpen ? 'max-h-[500px] shadow-2xl' : 'max-h-[84px] shadow-md'}`}>
               <AICoachChat isOpen={isChatOpen} onToggle={() => setIsChatOpen(!isChatOpen)} />
           </div>
       </section>

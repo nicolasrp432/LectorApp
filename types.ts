@@ -2,6 +2,34 @@
 export type ImageSize = '1K' | '2K' | '4K';
 export type ReadingMode = 'focal' | 'campo_visual' | 'expansion' | 'lectura_profunda';
 
+export interface LearningStep {
+  title: string;
+  text: string;
+  icon: string;
+  visualType: 'animation' | 'image' | 'text';
+  animationKey?: string;
+}
+
+export interface LearningModule {
+  id: string;
+  title: string;
+  duration: string;
+  icon: string;
+  description: string;
+  color: string;
+  steps: LearningStep[];
+  checkpointQuestion?: QuizQuestion;
+  relatedTrainingRoute?: AppRoute;
+}
+
+export interface LearningProgress {
+  moduleId: string;
+  completedSteps: number;
+  isCompleted: boolean;
+  score?: number;
+  lastAccessed: number;
+}
+
 export interface Book {
   id: string;
   userId?: string; 
@@ -46,7 +74,7 @@ export interface Reward {
   cost: number;
   value: string;
   icon: string;
-  requiredAchievementId?: string; // Nuevo: Bloqueo por logros
+  requiredAchievementId?: string;
 }
 
 export interface User {
@@ -60,6 +88,7 @@ export interface User {
   level: string; 
   preferences: UserPreferences;
   achievements: Achievement[];
+  learningProgress?: LearningProgress[];
 }
 
 export interface UserStats {
@@ -116,12 +145,12 @@ export interface Flashcard {
   bookId?: string;
   front: string; 
   back: string;  
-  interval: number; // Intervalo en días
-  repetition: number; // Veces repasada con éxito
-  efactor: number; // Factor de facilidad (1.3 - 2.5+)
-  dueDate: number; // Próxima revisión (Timestamp)
-  lastReviewed?: number; // Última revisión (Timestamp)
-  masteryLevel?: number; // 0-5
+  interval: number;
+  repetition: number;
+  efactor: number;
+  dueDate: number;
+  lastReviewed?: number;
+  masteryLevel?: number;
   conceptId?: string;
 }
 
@@ -178,4 +207,5 @@ export enum AppRoute {
   EDIT_PROFILE = 'edit_profile',
   REWARDS = 'rewards',
   TRAININGS = 'trainings',
+  LEARNING_MODULE = 'learning_module'
 }

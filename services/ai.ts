@@ -4,7 +4,8 @@ import { Flashcard, ReadingLog, UserStats, ImageSize, QuizQuestion } from "../ty
 
 // --- COACH IA: Chat con Gemini 3 Pro ---
 export const startCoachChat = (history: {role: 'user' | 'model', parts: {text: string}[]}[]) => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    // Fix: Always use process.env.API_KEY directly when initializing the @google/genai client
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     return ai.chats.create({
         model: 'gemini-3-pro-preview',
         history: history,
@@ -23,7 +24,8 @@ export const startCoachChat = (history: {role: 'user' | 'model', parts: {text: s
 
 // --- MEMORIA: Generador de Escenas Bizarras ---
 export const generateBizarreStory = async (concept: string, location: string, method: string, context?: string): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  // Fix: Always use process.env.API_KEY directly when initializing the @google/genai client
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const prompt = `
       Actúa como un maestro de mnemotecnia y aprendizaje acelerado.
@@ -60,7 +62,8 @@ export const generateBizarreStory = async (concept: string, location: string, me
 
 // --- IMAGEN: Generador de Imágenes Mnemotécnicas ---
 export const generateMemoryImage = async (story: string, location: string, size: ImageSize = '1K'): Promise<string | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  // Fix: Always use process.env.API_KEY directly when initializing the @google/genai client
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const prompt = `Una escena mental de mnemotecnia bizarra y exagerada. 
     Descripción: ${story}. 
@@ -95,7 +98,8 @@ export const generateMemoryImage = async (story: string, location: string, size:
 
 // --- EVALUACIÓN: Generar cuestionario de comprensión con IA ---
 export const generateReadingQuiz = async (content: string): Promise<QuizQuestion[]> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  // Fix: Always use process.env.API_KEY directly when initializing the @google/genai client
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const prompt = `
       Genera un cuestionario de comprensión lectora de 3 preguntas para el siguiente texto.
@@ -132,11 +136,13 @@ export const generateReadingQuiz = async (content: string): Promise<QuizQuestion
 
 // --- VISION: Analizar Imágenes ---
 export const analyzeImageToText = async (base64Image: string): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  // Fix: Always use process.env.API_KEY directly when initializing the @google/genai client
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const base64Data = base64Image.split(',')[1] || base64Image;
+    // Fix: Use gemini-3-flash-preview for basic multimodal transcription tasks (image-to-text) as per task guidelines.
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-image-preview',
+      model: 'gemini-3-flash-preview',
       contents: {
         parts: [
           { inlineData: { mimeType: 'image/jpeg', data: base64Data } },
@@ -152,7 +158,8 @@ export const analyzeImageToText = async (base64Image: string): Promise<string> =
 
 // --- FLASHCARDS: Generación con Gemini ---
 export const generateFlashcardsFromText = async (userId: string, sourceText: string, isTopic: boolean = false): Promise<Flashcard[]> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  // Fix: Always use process.env.API_KEY directly when initializing the @google/genai client
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const prompt = isTopic 
       ? `Genera 5 flashcards educativas sobre el tema: "${sourceText}". Cada flashcard debe tener un frente (pregunta/concepto) y un dorso (respuesta/explicación). Devuelve solo el JSON.`
@@ -195,7 +202,8 @@ export const generateFlashcardsFromText = async (userId: string, sourceText: str
 };
 
 export const editImage = async (base64Image: string, prompt: string): Promise<string | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  // Fix: Always use process.env.API_KEY directly when initializing the @google/genai client
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const matches = base64Image.match(/^data:([^;]+);base64,(.+)$/);
     const mimeType = matches ? matches[1] : 'image/png';

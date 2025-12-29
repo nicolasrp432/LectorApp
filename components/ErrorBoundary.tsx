@@ -1,5 +1,5 @@
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { ErrorInfo, ReactNode } from 'react';
 
 interface Props {
   children?: ReactNode;
@@ -10,23 +10,30 @@ interface State {
   error?: Error;
 }
 
-// Error Boundary implementation with TypeScript fixes for state and props inheritance
-// Fixed: Using React.Component and a constructor ensures the compiler correctly identifies 'props' as a member of the class.
+/**
+ * ErrorBoundary component to catch rendering errors and display a fallback UI.
+ * Standard class-based implementation for React Error Boundaries.
+ */
+// Fix: Use React.Component to ensure props and state are correctly inherited and typed.
 export class ErrorBoundary extends React.Component<Props, State> {
+  // Fix: Initialize state in the constructor to ensure standard React component property behavior and avoid shadowing issues.
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false };
   }
 
+  // Static method to update state from an error
   public static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
   }
 
+  // Lifecycle method to log error details
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("[Lector Crash]:", error, errorInfo);
   }
 
   public render() {
+    // Fix: Access state via this.state which is correctly recognized via inheritance from React.Component.
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-[#112116] flex flex-col items-center justify-center p-8 text-center">
@@ -49,7 +56,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
         </div>
       );
     }
-    // Safely return children from props
+    // Fix: Access children from this.props which is correctly inherited from React.Component.
     return this.props.children;
   }
 }

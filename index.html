@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es" class="dark scroll-smooth">
   <head>
@@ -26,8 +27,9 @@
         theme: {
           extend: {
             colors: {
-              primary: "#19e65e",
-              "primary-dark": "#14b84b",
+              // OPTIMIZACIÓN: Los colores primarios ahora son dinámicos
+              primary: "var(--primary)",
+              "primary-dark": "var(--primary-dark)",
               "background-dark": "#112116",
               "surface-dark": "#1a2c20",
             },
@@ -37,9 +39,18 @@
       };
     </script>
     <style>
-      :root { --primary: #19e65e; }
+      /* Definición de variables raíz con fallback de seguridad */
+      :root { 
+        --primary: #19e65e; 
+        --primary-dark: #14b84b;
+      }
       body { background-color: #112116; min-height: 100vh; }
       .no-scrollbar::-webkit-scrollbar { display: none; }
+      
+      /* Asegurar que las transiciones de color sean fluidas */
+      * {
+        transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+      }
     </style>
     <script type="importmap">
 {

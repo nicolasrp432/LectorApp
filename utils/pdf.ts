@@ -19,26 +19,32 @@ export const extractTextFromPdf = async (file: File): Promise<string> => {
     
     let fullText = '';
     const numPages = pdf.numPages;
-    const maxPages = Math.min(numPages, 20);
+    // Aumentamos el límite de páginas procesadas para el MVP
+    const maxPages = Math.min(numPages, 100); 
 
     for (let i = 1; i <= maxPages; i++) {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
+      
+      // Mejoramos la unión de texto para evitar palabras pegadas y asegurar flujo continuo
       const pageText = textContent.items
         // @ts-ignore
-        .map((item) => item.str)
-        .join(' ');
+        .map((item) => {
+            // Aseguramos que si no hay espacio natural al final del item, lo añadamos para legibilidad
+            return item.str + (item.hasEOL ? '\n' : ' ');
+        })
+        .join('');
       
       fullText += pageText + '\n\n';
     }
 
     if (numPages > maxPages) {
-        fullText += `\n\n[Texto truncado...]`;
+        fullText += `\n\n[Texto truncado automáticamente a ${maxPages} páginas...]`;
     }
 
-    return fullText;
+    return fullText.trim();
   } catch (error) {
     console.error("Error parsing PDF:", error);
-    throw new Error("No se pudo leer el archivo PDF.");
+    throw new Error("No se pudo leer el archivo PDF correctamente.");
   }
 };

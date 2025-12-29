@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { AppRoute, Reward, Achievement } from '../types.ts';
-import { REWARDS_LIST, ACHIEVEMENTS_LIST } from '../constants.ts';
+import { REWARDS_LIST, ACHIEVEMENTS_LIST, DEFAULT_THEME_CONFIG } from '../constants.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useToast } from '../context/ToastContext.tsx';
 
@@ -33,9 +34,11 @@ const Rewards: React.FC<RewardsProps> = ({ onBack }) => {
           }
       }
 
+      // Si ya lo tiene, equipar o desequipar
       if (isOwned) {
+          const isCurrent = isEquipped(reward);
           await equipReward(reward);
-          showToast(`¡${reward.title} equipado!`, 'success');
+          showToast(isCurrent ? `Tema original restaurado` : `¡${reward.title} aplicado!`, 'success');
           setProcessingId(null);
           return;
       }
@@ -46,6 +49,7 @@ const Rewards: React.FC<RewardsProps> = ({ onBack }) => {
           return;
       }
 
+      // Proceso de compra
       setTimeout(async () => {
           const newXP = user.stats.xp - reward.cost;
           const newUnlocked = [...(user.preferences.unlockedRewards || []), reward.id];
@@ -58,7 +62,7 @@ const Rewards: React.FC<RewardsProps> = ({ onBack }) => {
               }
           });
           
-          showToast(`¡${reward.title} comprado!`, 'success');
+          showToast(`¡${reward.title} desbloqueado!`, 'success');
           setProcessingId(null);
       }, 600);
   };
@@ -88,7 +92,7 @@ const Rewards: React.FC<RewardsProps> = ({ onBack }) => {
             </div>
         </div>
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Mercado Cerebral</h1>
-        <p className="text-slate-500 dark:text-gray-400 text-sm">Invierte tu conocimiento y visualiza tus logros.</p>
+        <p className="text-slate-500 dark:text-gray-400 text-sm">Invierte tu conocimiento para personalizar tu experiencia.</p>
       </header>
 
       {/* Filter Tabs */}
@@ -97,7 +101,6 @@ const Rewards: React.FC<RewardsProps> = ({ onBack }) => {
             { id: 'all', label: 'Todo' },
             { id: 'theme', label: 'Temas' },
             { id: 'avatar', label: 'Avatares' },
-            { id: 'book', label: 'Libros' },
             { id: 'achievements', label: 'Logros' }
           ].map(f => (
               <button 
@@ -128,7 +131,6 @@ const Rewards: React.FC<RewardsProps> = ({ onBack }) => {
                                 }
                             `}
                           >
-                              {/* Icon Container */}
                               <div className={`size-16 rounded-full flex items-center justify-center shrink-0 border-2
                                   ${isUnlocked ? 'bg-primary text-black border-primary/50' : 'bg-black/40 text-gray-600 border-white/5'}
                               `}>
@@ -137,7 +139,6 @@ const Rewards: React.FC<RewardsProps> = ({ onBack }) => {
                                   </span>
                               </div>
 
-                              {/* Info */}
                               <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2">
                                       <h3 className={`font-bold text-lg leading-none ${isUnlocked ? 'text-white' : 'text-gray-500'}`}>
@@ -146,11 +147,6 @@ const Rewards: React.FC<RewardsProps> = ({ onBack }) => {
                                       {isUnlocked && <span className="material-symbols-outlined text-primary text-sm">verified</span>}
                                   </div>
                                   <p className="text-xs text-gray-400 mt-1">{achievement.description}</p>
-                                  {isUnlocked && unlockedData.unlockedAt && (
-                                      <p className="text-[10px] text-primary/60 mt-2 font-bold uppercase tracking-widest">
-                                          Obtenido: {new Date(unlockedData.unlockedAt).toLocaleDateString()}
-                                      </p>
-                                  )}
                               </div>
 
                               {!isUnlocked && (
@@ -175,13 +171,12 @@ const Rewards: React.FC<RewardsProps> = ({ onBack }) => {
                           <div 
                             key={reward.id} 
                             className={`bg-white dark:bg-surface-dark rounded-2xl p-4 border flex flex-col gap-3 shadow-sm transition-all group relative overflow-hidden 
-                                ${equipped ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-gray-100 dark:border-white/5 hover:border-yellow-500/30'}
+                                ${equipped ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-gray-100 dark:border-white/5 hover:border-primary/30'}
                                 ${locked ? 'opacity-70 grayscale-[0.5]' : ''}
                             `}
                           >
                               <div className="absolute top-2 right-2 z-10">
                                   {equipped && <span className="material-symbols-outlined text-primary text-xl">check_circle</span>}
-                                  {locked && <span className="material-symbols-outlined text-gray-500 text-xl bg-black/40 rounded-full p-0.5">lock</span>}
                               </div>
 
                               <div className="aspect-square rounded-xl bg-gray-50 dark:bg-black/20 flex items-center justify-center relative overflow-hidden">
@@ -190,9 +185,6 @@ const Rewards: React.FC<RewardsProps> = ({ onBack }) => {
                                   )}
                                   {reward.type === 'theme' && (
                                       <div className="size-16 rounded-full shadow-lg border-4 border-white dark:border-gray-700" style={{ backgroundColor: reward.value }}></div>
-                                  )}
-                                  {reward.type === 'book' && (
-                                      <span className="material-symbols-outlined text-6xl text-gray-400 group-hover:text-primary transition-colors">menu_book</span>
                                   )}
                                   {locked && (
                                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-[1px] p-2 text-center">
@@ -208,11 +200,11 @@ const Rewards: React.FC<RewardsProps> = ({ onBack }) => {
                               </div>
 
                               <button 
-                                disabled={equipped || (!owned && !canAfford) || isProcessing || locked}
+                                disabled={(!owned && !canAfford) || isProcessing || locked}
                                 onClick={() => handleAction(reward)}
                                 className={`w-full py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-1 transition-all
                                     ${equipped 
-                                        ? 'bg-transparent text-primary border border-primary/20 cursor-default opacity-50' 
+                                        ? 'bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30' 
                                         : owned
                                             ? 'bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-slate-900 dark:text-white hover:bg-gray-50'
                                             : locked
@@ -225,9 +217,9 @@ const Rewards: React.FC<RewardsProps> = ({ onBack }) => {
                                   {isProcessing ? (
                                       <span className="size-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
                                   ) : equipped ? (
-                                      'En uso'
+                                      'Dejar de usar'
                                   ) : owned ? (
-                                      'Equipar'
+                                      'Usar tema'
                                   ) : locked ? (
                                       'Bloqueado'
                                   ) : (

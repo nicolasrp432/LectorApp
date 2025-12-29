@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
-import { AppRoute, Achievement } from './types.ts';
+import { AppRoute, Achievement, LearningModule } from './types.ts';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
 import { ToastProvider, useToast } from './context/ToastContext.tsx';
-import { PRACTICE_LIBRARY } from './constants.ts';
+import { PRACTICE_LIBRARY, LEARNING_MODULES } from './constants.ts';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 
 // Pages
@@ -26,6 +27,7 @@ import Settings from './pages/Settings.tsx';
 import EditProfile from './pages/EditProfile.tsx';
 import Rewards from './pages/Rewards.tsx';
 import TrainingsList from './pages/TrainingsList.tsx';
+import LearningModuleViewer from './pages/LearningModuleViewer.tsx';
 import BottomNav from './components/BottomNav.tsx';
 import Header from './components/Header.tsx';
 import AchievementModal from './components/AchievementModal.tsx';
@@ -34,6 +36,7 @@ const MainLayout: React.FC = () => {
   const { user, loading, notifications, setNotifications, books, logReading, updateUser, logout } = useAuth();
   const [currentRoute, setCurrentRoute] = useState<AppRoute>(AppRoute.WELCOME);
   const [currentBookId, setCurrentBookId] = useState<string>('');
+  const [currentModuleId, setCurrentModuleId] = useState<string>('');
   const [assessmentData, setAssessmentData] = useState({wpm: 0, comprehension: 0});
   const [newAchievement, setNewAchievement] = useState<Achievement | null>(null);
 
@@ -43,12 +46,14 @@ const MainLayout: React.FC = () => {
     }
   }, [user?.preferences?.themeColor]);
 
-  const navigate = (route: AppRoute) => {
+  const navigate = (route: AppRoute, params?: any) => {
+      if (route === AppRoute.LEARNING_MODULE && params?.moduleId) {
+          setCurrentModuleId(params.moduleId);
+      }
       setCurrentRoute(route);
       window.scrollTo(0,0);
   };
 
-  // Guard: Auto-redirect to Login/Welcome when session is cleared
   useEffect(() => {
       const publicRoutes = [
           AppRoute.WELCOME, AppRoute.LOGIN, AppRoute.REGISTER, 
@@ -136,6 +141,11 @@ const MainLayout: React.FC = () => {
       ) : <Welcome onNavigate={navigate} />;
       
       case AppRoute.REWARDS: return user ? <Rewards onBack={() => navigate(AppRoute.DASHBOARD)} /> : <Welcome onNavigate={navigate} />;
+
+      case AppRoute.LEARNING_MODULE:
+          const module = LEARNING_MODULES.find(m => m.id === currentModuleId);
+          if (!module) return <Dashboard onNavigate={navigate} />;
+          return <LearningModuleViewer module={module} onBack={(target) => navigate(target || AppRoute.DASHBOARD)} />;
       
       default: return <Welcome onNavigate={navigate} />;
     }
