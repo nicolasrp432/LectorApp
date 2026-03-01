@@ -51,7 +51,7 @@ export const dbService = {
                     difficultyLevel: data.preferences?.difficultyLevel ?? 'Básico',
                     notificationsEnabled: data.preferences?.notificationsEnabled ?? true,
                     soundEnabled: data.preferences?.soundEnabled ?? true,
-                    themeColor: data.preferences?.themeColor ?? '#19e65e',
+                    themeColor: data.preferences?.themeColor ?? '#34d399',
                     unlockedRewards: data.preferences?.unlockedRewards ?? []
                 },
                 achievements: data.achievements || [],

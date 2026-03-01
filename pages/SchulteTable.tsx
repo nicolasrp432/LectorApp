@@ -192,7 +192,7 @@ const SchulteTable: React.FC<SchulteTableProps> = ({ onBack }) => {
       <div className="flex-none flex justify-center gap-12 py-8 bg-gradient-to-b from-primary/5 to-transparent">
           <div className="flex flex-col items-center">
               <span className="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1">Próximo</span>
-              <span className="text-5xl font-black text-primary transition-all duration-300 drop-shadow-[0_0_15px_rgba(25,230,94,0.3)]">{currentNumber}</span>
+              <span className="text-5xl font-black text-primary transition-all duration-300 drop-shadow-[0_0_15px_rgba(52,211,153,0.3)]">{currentNumber}</span>
           </div>
           <div className="flex flex-col items-center">
               <span className="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1">Tiempo</span>
@@ -208,14 +208,14 @@ const SchulteTable: React.FC<SchulteTableProps> = ({ onBack }) => {
                 <div className="relative mb-8">
                     <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse"></div>
                     <div className="size-24 rounded-[2rem] bg-surface-dark border-2 border-primary/30 flex items-center justify-center shadow-2xl relative z-10">
-                        <span className="material-symbols-outlined text-6xl text-primary drop-shadow-[0_0_10px_rgba(25,230,94,0.5)]">grid_view</span>
+                        <span className="material-symbols-outlined text-6xl text-primary drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]">grid_view</span>
                     </div>
                 </div>
                 <h2 className="text-3xl font-black text-white mb-3">Preparado para el {gridSize}x{gridSize}</h2>
                 <p className="text-sm text-gray-400 mb-10 max-w-[280px] leading-relaxed">
                     Fija tu mirada en el <span className="text-red-500 font-bold">punto rojo central</span> y localiza los números sin mover los ojos.
                 </p>
-                <Button onClick={startGame} className="px-12 h-18 text-xl rounded-2xl shadow-[0_15px_35px_rgba(25,230,94,0.25)] hover:scale-105 active:scale-95 transition-all">
+                <Button onClick={startGame} className="px-12 h-18 text-xl rounded-2xl shadow-glow-lg hover:scale-105 active:scale-95 transition-all">
                     Empezar Entrenamiento
                 </Button>
             </div>

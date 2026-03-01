@@ -45,11 +45,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
         const themeColor = user?.preferences?.themeColor ?? DEFAULT_THEME_CONFIG.primaryColor;
         document.documentElement.style.setProperty('--primary', themeColor);
-        const darkColor = themeColor === DEFAULT_THEME_CONFIG.primaryColor ? '#14b84b' : themeColor;
+        const darkColor = themeColor === DEFAULT_THEME_CONFIG.primaryColor ? '#10b981' : themeColor;
         document.documentElement.style.setProperty('--primary-dark', darkColor);
     } catch (e) {
         document.documentElement.style.setProperty('--primary', DEFAULT_THEME_CONFIG.primaryColor);
-        document.documentElement.style.setProperty('--primary-dark', '#14b84b');
+        document.documentElement.style.setProperty('--primary-dark', '#10b981');
     }
   }, [user?.preferences?.themeColor, user]);
 

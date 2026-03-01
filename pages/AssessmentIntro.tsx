@@ -37,8 +37,8 @@ const AssessmentIntro: React.FC<AssessmentIntroProps> = ({ onNavigate, onBack })
         <div className="w-full relative mb-10 mt-2">
           <div className="absolute inset-0 bg-primary/20 blur-[80px] rounded-full opacity-40 transform scale-90"></div>
           <div className="relative flex flex-col items-center">
-            <div className="size-28 bg-gradient-to-br from-[#1A2C20] to-[#112116] rounded-3xl border border-primary/30 flex items-center justify-center shadow-2xl transform -rotate-3 hover:rotate-0 transition-transform duration-500">
-               <span className="material-symbols-outlined text-primary text-6xl drop-shadow-[0_0_15px_rgba(25,230,94,0.5)]">speed</span>
+            <div className="size-28 bg-gradient-to-br from-surface-dark to-background-dark rounded-3xl border border-primary/30 flex items-center justify-center shadow-2xl transform -rotate-3 hover:rotate-0 transition-transform duration-500">
+               <span className="material-symbols-outlined text-primary text-6xl drop-shadow-[0_0_15px_rgba(52,211,153,0.5)]">speed</span>
             </div>
             {/* Elementos decorativos de "radar" o "escaneo" */}
             <div className="absolute -z-10 size-40 border border-primary/10 rounded-full animate-[ping_3s_linear_infinite]"></div>
@@ -59,7 +59,7 @@ const AssessmentIntro: React.FC<AssessmentIntroProps> = ({ onNavigate, onBack })
 
         {/* Feature Cards - Beneficios Directos */}
         <div className="w-full space-y-4">
-          <div className="group flex items-start gap-4 bg-white dark:bg-[#1A2C20] p-5 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm transition-all hover:border-primary/30 active:scale-[0.98]">
+          <div className="group flex items-start gap-4 bg-white dark:bg-surface-dark p-5 rounded-2xl border border-gray-100 dark:border-card-border shadow-sm transition-all hover:border-primary/30 active:scale-[0.98]">
             <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
               <span className="material-symbols-outlined">bar_chart</span>
             </div>
@@ -69,7 +69,7 @@ const AssessmentIntro: React.FC<AssessmentIntroProps> = ({ onNavigate, onBack })
             </div>
           </div>
 
-          <div className="group flex items-start gap-4 bg-white dark:bg-[#1A2C20] p-5 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm transition-all hover:border-primary/30 active:scale-[0.98]">
+          <div className="group flex items-start gap-4 bg-white dark:bg-surface-dark p-5 rounded-2xl border border-gray-100 dark:border-card-border shadow-sm transition-all hover:border-primary/30 active:scale-[0.98]">
             <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
               <span className="material-symbols-outlined">psychology</span>
             </div>
@@ -93,7 +93,7 @@ const AssessmentIntro: React.FC<AssessmentIntroProps> = ({ onNavigate, onBack })
           {/* Main Action Button */}
           <button
             onClick={() => onNavigate(AppRoute.ASSESSMENT_READING)}
-            className="w-full bg-primary hover:bg-primary-dark active:scale-[0.95] transition-all text-[#112116] font-extrabold text-xl h-16 rounded-2xl flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(25,230,94,0.4)] group"
+            className="w-full bg-primary hover:bg-primary-dark active:scale-[0.95] transition-all text-background-dark font-extrabold text-xl h-16 rounded-2xl flex items-center justify-center gap-3 shadow-glow-lg group"
           >
             <span>Iniciar Test</span>
             <span className="material-symbols-outlined text-[24px] group-hover:translate-x-1 transition-transform">arrow_forward</span>

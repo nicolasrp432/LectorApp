@@ -36,7 +36,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
     // Fix: Access state via this.state which is correctly recognized via inheritance from React.Component.
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-[#112116] flex flex-col items-center justify-center p-8 text-center">
+        <div className="min-h-screen bg-background-dark flex flex-col items-center justify-center p-8 text-center">
           <div className="size-20 bg-red-500/10 rounded-full flex items-center justify-center mb-6 border border-red-500/20">
             <span className="material-symbols-outlined text-red-500 text-5xl">warning</span>
           </div>
@@ -46,7 +46,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
           </p>
           <button 
             onClick={() => window.location.reload()}
-            className="px-8 py-4 bg-primary text-black font-bold rounded-xl shadow-lg active:scale-95 transition-transform"
+            className="px-8 py-4 bg-primary text-background-dark font-bold rounded-xl shadow-lg active:scale-95 transition-transform"
           >
             Reiniciar Aplicación
           </button>

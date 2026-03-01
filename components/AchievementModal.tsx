@@ -9,10 +9,10 @@ interface AchievementModalProps {
 const AchievementModal: React.FC<AchievementModalProps> = ({ achievement, onClose }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-      <div className="bg-white dark:bg-[#1A2C20] rounded-3xl p-8 w-full max-w-sm shadow-2xl border border-primary/20 text-center relative overflow-hidden animate-in zoom-in-95 duration-300">
+      <div className="bg-white dark:bg-surface-dark rounded-3xl p-8 w-full max-w-sm shadow-2xl border border-primary/20 text-center relative overflow-hidden animate-in zoom-in-95 duration-300">
         
         {/* Confetti / Ray Effect Background */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_90deg_at_50%_50%,#19e65e10_0deg,transparent_60deg,transparent_300deg,#19e65e10_360deg)] animate-[spin_4s_linear_infinite] pointer-events-none"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_90deg_at_50%_50%,rgba(52,211,153,0.06)_0deg,transparent_60deg,transparent_300deg,rgba(52,211,153,0.06)_360deg)] animate-[spin_4s_linear_infinite] pointer-events-none"></div>
 
         <div className="relative z-10">
             <div className="size-24 bg-gradient-to-br from-primary to-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-primary/40 animate-bounce">

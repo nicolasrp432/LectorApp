@@ -69,7 +69,7 @@ const TrainingsList: React.FC<TrainingsListProps> = ({ onNavigate, onBack }) => 
                                                 <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{module.description}</p>
                                             </div>
                                         </div>
-                                        <div className="bg-gray-100 dark:bg-white/5 size-10 rounded-full flex items-center justify-center group-hover:bg-primary group-hover:text-black transition-colors">
+                                        <div className="bg-gray-100 dark:bg-white/5 size-10 rounded-full flex items-center justify-center group-hover:bg-primary group-hover:text-background-dark transition-colors">
                                             <span className="material-symbols-outlined">arrow_forward</span>
                                         </div>
                                     </div>

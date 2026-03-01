@@ -40,7 +40,7 @@ const Header: React.FC<HeaderProps> = ({ user, notifications, onClearNotificatio
           {showNotifs && (
             <>
                 <div className="fixed inset-0 z-30" onClick={() => setShowNotifs(false)}></div>
-                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#1A2C20] rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 z-40 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-surface-dark rounded-2xl shadow-2xl border border-gray-200 dark:border-card-border z-40 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
                     <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/5">
                         <h3 className="font-bold text-gray-900 dark:text-white">Notificaciones</h3>
                         {notifications.length > 0 && (

@@ -50,7 +50,7 @@ export const AICoachChat: React.FC<AICoachChatProps> = ({ isOpen, onToggle }) =>
     };
 
     return (
-        <div className="bg-gradient-to-br from-[#1A2C20] to-[#112116] flex flex-col h-[420px] transition-all duration-500">
+        <div className="bg-gradient-to-br from-surface-dark to-background-dark flex flex-col h-[420px] transition-all duration-500">
             {/* Header / Trigger */}
             <header 
                 onClick={onToggle}
@@ -78,7 +78,7 @@ export const AICoachChat: React.FC<AICoachChatProps> = ({ isOpen, onToggle }) =>
                         <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
                             <div className={`max-w-[85%] p-3 rounded-2xl text-xs leading-relaxed ${
                                 m.role === 'user' 
-                                ? 'bg-primary text-black font-medium rounded-tr-none' 
+                                ? 'bg-primary text-background-dark font-medium rounded-tr-none' 
                                 : 'bg-white/10 text-gray-200 rounded-tl-none'
                             }`}>
                                 {m.text}
@@ -108,7 +108,7 @@ export const AICoachChat: React.FC<AICoachChatProps> = ({ isOpen, onToggle }) =>
                     <button 
                         onClick={handleSend}
                         disabled={isTyping}
-                        className="size-10 bg-primary rounded-xl flex items-center justify-center text-black active:scale-95 transition-all disabled:opacity-50 shadow-lg shadow-primary/20"
+                        className="size-10 bg-primary rounded-xl flex items-center justify-center text-background-dark active:scale-95 transition-all disabled:opacity-50 shadow-lg shadow-primary/20"
                     >
                         <span className="material-symbols-outlined text-lg font-bold">send</span>
                     </button>

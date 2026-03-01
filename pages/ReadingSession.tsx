@@ -70,7 +70,7 @@ const ReadingDisplay: React.FC<{
           else isHigh = globalIdx >= wordIndex && globalIdx < wordIndex + 4;
 
           return (
-            <span key={idx} className={`text-xl transition-all duration-150 rounded px-1.5 py-0.5 ${isHigh ? 'bg-primary/80 text-black font-bold scale-110 shadow-lg' : 'text-slate-100 opacity-20'}`}>
+                <span key={idx} className={`text-xl transition-all duration-150 rounded px-1.5 py-0.5 ${isHigh ? 'bg-primary/80 text-background-dark font-bold scale-110 shadow-lg' : 'text-slate-100 opacity-20'}`}>
               {w}
             </span>
           );
@@ -161,7 +161,7 @@ const ControlPanel: React.FC<{
           
           <button 
             onClick={onTogglePlay} 
-            className="size-16 rounded-2xl bg-primary text-black flex items-center justify-center shadow-[0_4px_15px_rgba(25,230,94,0.3)] active:scale-95 transition-all"
+            className="size-16 rounded-2xl bg-primary text-background-dark flex items-center justify-center shadow-glow active:scale-95 transition-all"
           >
             <span className="material-symbols-outlined text-[42px] font-bold">
               {isPlaying ? 'pause' : 'play_arrow'}
@@ -179,7 +179,7 @@ const ControlPanel: React.FC<{
           <button 
             onClick={onFinish} 
             className={`flex-1 py-4 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-sm
-              ${isFinished ? 'bg-primary text-black' : 'bg-primary/20 text-primary hover:bg-primary/30'}
+              ${isFinished ? 'bg-primary text-background-dark' : 'bg-primary/20 text-primary hover:bg-primary/30'}
             `}
           >
             <span className="material-symbols-outlined text-sm">check_circle</span> Finalizar

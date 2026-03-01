@@ -27,16 +27,16 @@ const Quiz: React.FC<QuizProps> = ({ onNavigate, onBack }) => {
           </button>
           <h2 className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-tight flex-1 text-center">Evaluación</h2>
           <button onClick={() => onNavigate(AppRoute.DASHBOARD)} className="flex size-10 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer transition-colors">
-            <span className="material-symbols-outlined text-slate-500 dark:text-[#93c8a5]" style={{ fontSize: '24px' }}>close</span>
+            <span className="material-symbols-outlined text-slate-500 dark:text-primary/60" style={{ fontSize: '24px' }}>close</span>
           </button>
         </div>
         {/* Progress Bar Integrated in Header Area */}
         <div className="px-6 pb-4 pt-1 max-w-lg mx-auto w-full">
           <div className="flex justify-between items-end mb-2">
-            <p className="text-slate-600 dark:text-[#93c8a5] text-xs font-semibold uppercase tracking-wider">Pregunta 3 de 5</p>
+            <p className="text-slate-600 dark:text-primary/60 text-xs font-semibold uppercase tracking-wider">Pregunta 3 de 5</p>
             <p className="text-primary text-xs font-bold uppercase tracking-wider">Puntaje: 100%</p>
           </div>
-          <div className="h-1.5 w-full bg-slate-200 dark:bg-[#346544] rounded-full overflow-hidden">
+          <div className="h-1.5 w-full bg-slate-200 dark:bg-primary/20 rounded-full overflow-hidden">
             <div className="h-full bg-primary rounded-full transition-all duration-500 ease-out" style={{ width: '60%' }}></div>
           </div>
         </div>
@@ -81,7 +81,7 @@ const Quiz: React.FC<QuizProps> = ({ onNavigate, onBack }) => {
             if (selectedOption && isSelected) {
                  if (isCorrect) {
                     // Correct & Selected
-                    containerClass += "border-2 border-primary bg-primary/10 shadow-[0_0_15px_rgba(25,230,94,0.15)]";
+                    containerClass += "border-2 border-primary bg-primary/10 shadow-[0_0_15px_rgba(52,211,153,0.15)]";
                     icon = (
                         <div className="mt-0.5 flex items-center justify-center h-5 w-5 rounded-full bg-primary text-background-dark shrink-0">
                             <span className="material-symbols-outlined text-[14px] font-bold">check</span>
@@ -110,15 +110,15 @@ const Quiz: React.FC<QuizProps> = ({ onNavigate, onBack }) => {
                  }
             } else if (selectedOption && !isSelected && isCorrect && selectedOption !== option.id) {
                 // Show correct answer if wrong was picked (optional behavior, here simpler: just unselected style)
-                containerClass += "border-slate-200 dark:border-[#346544] bg-white dark:bg-transparent opacity-50";
+                containerClass += "border-slate-200 dark:border-primary/20 bg-white dark:bg-transparent opacity-50";
                  icon = (
-                   <div className="mt-0.5 h-5 w-5 rounded-full border-2 border-slate-300 dark:border-[#346544] bg-transparent"></div>
+                   <div className="mt-0.5 h-5 w-5 rounded-full border-2 border-slate-300 dark:border-primary/20 bg-transparent"></div>
                  );
             } else {
                 // Default / Unselected
-                 containerClass += "border-slate-200 dark:border-[#346544] bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5";
+                 containerClass += "border-slate-200 dark:border-primary/20 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5";
                  icon = (
-                    <div className={`mt-0.5 h-5 w-5 rounded-full border-2 border-slate-300 dark:border-[#346544] bg-transparent ${selectedOption ? '' : 'group-hover:border-primary'}`}></div>
+                    <div className={`mt-0.5 h-5 w-5 rounded-full border-2 border-slate-300 dark:border-primary/20 bg-transparent ${selectedOption ? '' : 'group-hover:border-primary'}`}></div>
                  );
             }
 
@@ -141,7 +141,7 @@ const Quiz: React.FC<QuizProps> = ({ onNavigate, onBack }) => {
             {selectedOption && (
                 <button
                     onClick={() => onNavigate(AppRoute.DASHBOARD)} // End of demo quiz
-                    className="flex w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-xl h-14 px-5 bg-primary hover:bg-[#16cc53] active:scale-[0.98] transition-all text-[#112217] shadow-lg shadow-primary/20"
+                    className="flex w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-xl h-14 px-5 bg-primary hover:bg-primary-dark active:scale-[0.98] transition-all text-background-dark shadow-lg shadow-primary/20"
                 >
                     <span className="text-base font-bold leading-normal tracking-[0.015em]">Siguiente Pregunta</span>
                     <span className="material-symbols-outlined text-[20px]">arrow_forward</span>

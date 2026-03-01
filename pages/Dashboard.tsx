@@ -91,7 +91,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       <div className="px-5 mt-4">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Panel Principal</h1>
 
-        <div className="flex items-center justify-between gap-4 rounded-3xl bg-gradient-to-br from-[#112116] to-[#0d1810] border border-white/5 p-6 shadow-xl relative overflow-hidden group">
+        <div className="flex items-center justify-between gap-4 rounded-3xl bg-gradient-to-br from-background-dark to-[#080e0b] border border-card-border p-6 shadow-xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 rounded-full blur-[60px] pointer-events-none"></div>
           
           <div className="flex items-center gap-5 z-10">
@@ -122,7 +122,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             onClick={() => stats?.recommendation.module && onNavigate(stats.recommendation.module.route)}
             className="bg-primary/5 border border-primary/20 rounded-[2rem] p-5 flex items-center gap-4 cursor-pointer hover:bg-primary/10 transition-all group"
           >
-              <div className="size-12 rounded-full bg-primary flex items-center justify-center text-black shrink-0">
+              <div className="size-12 rounded-full bg-primary flex items-center justify-center text-background-dark shrink-0">
                   <span className="material-symbols-outlined font-black">lightbulb</span>
               </div>
               <div className="flex-1">
@@ -167,7 +167,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                             <XAxis dataKey="name" hide />
                             <YAxis hide />
                             <Tooltip 
-                                contentStyle={{ backgroundColor: '#112116', border: '1px solid #ffffff10', borderRadius: '12px' }}
+                                contentStyle={{ backgroundColor: 'var(--surface-dark)', border: '1px solid var(--card-border)', borderRadius: '12px' }}
                                 itemStyle={{ color: currentMetric.color }}
                             />
                             <Area type="monotone" dataKey="value" stroke={currentMetric.color} strokeWidth={3} fill={`url(#color-${metricIndex})`} />

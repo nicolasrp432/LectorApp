@@ -225,7 +225,7 @@ const LearningModuleViewer: React.FC<LearningModuleViewerProps> = ({ module, onB
                             if (!isLastStep) setCurrentStep(prev => prev + 1);
                             else setIsQuizPhase(true);
                         }}
-                        className="flex-1 h-14 bg-primary text-black font-black text-lg rounded-2xl shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+                        className="flex-1 h-14 bg-primary text-background-dark font-black text-lg rounded-2xl shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
                         {isLastStep ? 'Terminar Teoría' : 'Siguiente Paso'}
                         <span className="material-symbols-outlined">

@@ -32,7 +32,7 @@ const EditPreferenceModal: React.FC<EditPreferenceModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-      <div className="bg-white dark:bg-[#1A2C20] w-full max-w-sm rounded-2xl p-6 border border-gray-200 dark:border-white/10 shadow-2xl animate-in zoom-in-95">
+      <div className="bg-white dark:bg-surface-dark w-full max-w-sm rounded-2xl p-6 border border-gray-200 dark:border-card-border shadow-2xl animate-in zoom-in-95">
         <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">{title}</h3>
         
         <div className="mb-6">
@@ -93,7 +93,7 @@ const EditPreferenceModal: React.FC<EditPreferenceModalProps> = ({
             </button>
             <button 
                 onClick={handleSave}
-                className="flex-1 py-3 rounded-xl font-bold bg-primary text-black hover:bg-primary-dark transition-colors shadow-lg shadow-primary/20"
+                className="flex-1 py-3 rounded-xl font-bold bg-primary text-background-dark hover:bg-primary-dark transition-colors shadow-lg shadow-primary/20"
             >
                 Guardar
             </button>

@@ -224,7 +224,7 @@ const WordSpan: React.FC<WordSpanProps> = ({ onBack }) => {
                   Memoriza la secuencia completa.<br/> 
                   Al finalizar, deberás reconstruir el orden <b>exacto</b> de todos los elementos.
               </p>
-              <button onClick={startGame} className="px-8 py-4 bg-primary text-black font-bold rounded-xl shadow-[0_0_20px_rgba(25,230,94,0.3)] hover:scale-105 transition-transform">
+              <button onClick={startGame} className="px-8 py-4 bg-primary text-background-dark font-bold rounded-xl shadow-glow hover:scale-105 transition-transform">
                   Comenzar Nivel {level}
               </button>
               
@@ -324,7 +324,7 @@ const WordSpan: React.FC<WordSpanProps> = ({ onBack }) => {
                    <button onClick={() => { setPhase('intro'); setUserSequence([]); }} className="flex-1 py-4 border border-gray-300 dark:border-gray-600 rounded-xl font-bold text-gray-600 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                        Salir
                    </button>
-                   <button onClick={startGame} className="flex-1 py-4 bg-primary text-black font-bold rounded-xl hover:bg-primary-dark transition-colors shadow-lg">
+                   <button onClick={startGame} className="flex-1 py-4 bg-primary text-background-dark font-bold rounded-xl hover:bg-primary-dark transition-colors shadow-lg">
                        Intentar Nivel {level}
                    </button>
                </div>

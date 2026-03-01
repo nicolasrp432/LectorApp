@@ -106,7 +106,7 @@ const Rewards: React.FC<RewardsProps> = ({ onBack }) => {
               <button 
                 key={f.id}
                 onClick={() => setFilter(f.id as any)}
-                className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${filter === f.id ? 'bg-primary text-black shadow-lg shadow-primary/20' : 'bg-white/5 text-gray-500 hover:text-white'}`}
+                className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${filter === f.id ? 'bg-primary text-background-dark shadow-lg shadow-primary/20' : 'bg-white/5 text-gray-500 hover:text-white'}`}
               >
                   {f.label}
               </button>
@@ -132,7 +132,7 @@ const Rewards: React.FC<RewardsProps> = ({ onBack }) => {
                             `}
                           >
                               <div className={`size-16 rounded-full flex items-center justify-center shrink-0 border-2
-                                  ${isUnlocked ? 'bg-primary text-black border-primary/50' : 'bg-black/40 text-gray-600 border-white/5'}
+                                  ${isUnlocked ? 'bg-primary text-background-dark border-primary/50' : 'bg-black/40 text-gray-600 border-white/5'}
                               `}>
                                   <span className="material-symbols-outlined text-3xl">
                                       {isUnlocked ? achievement.icon : 'lock'}
@@ -210,7 +210,7 @@ const Rewards: React.FC<RewardsProps> = ({ onBack }) => {
                                             : locked
                                                 ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-white/5'
                                                 : canAfford 
-                                                    ? 'bg-yellow-500 text-black hover:bg-yellow-400 shadow-lg shadow-yellow-500/20 active:scale-95' 
+                                                    ? 'bg-yellow-500 text-background-dark hover:bg-yellow-400 shadow-lg shadow-yellow-500/20 active:scale-95' 
                                                     : 'bg-gray-200 dark:bg-white/5 text-gray-400 cursor-not-allowed'
                                     }`}
                               >

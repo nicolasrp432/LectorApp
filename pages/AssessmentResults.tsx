@@ -62,7 +62,7 @@ const AssessmentResults: React.FC<AssessmentResultsProps> = ({ wpm, comprehensio
         <div className="relative mb-8">
             <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse"></div>
             <div className="relative size-24 bg-gradient-to-br from-primary to-green-600 rounded-full flex items-center justify-center shadow-2xl border-4 border-background-dark">
-                <span className="material-symbols-outlined text-5xl text-black">emoji_events</span>
+                <span className="material-symbols-outlined text-5xl text-background-dark">emoji_events</span>
             </div>
         </div>
 
@@ -80,7 +80,7 @@ const AssessmentResults: React.FC<AssessmentResultsProps> = ({ wpm, comprehensio
                 <span className="text-3xl font-bold text-slate-900 dark:text-white">{comprehension}%</span>
                 <span className="text-xs text-blue-400">Precisión</span>
             </div>
-            <div className="col-span-2 bg-[#1A2C20] rounded-2xl p-6 border border-primary/20 flex flex-col items-center shadow-lg relative overflow-hidden">
+            <div className="col-span-2 bg-surface-dark rounded-2xl p-6 border border-primary/20 flex flex-col items-center shadow-lg relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-2 opacity-10">
                     <span className="material-symbols-outlined text-6xl text-primary">psychology</span>
                 </div>
@@ -93,7 +93,7 @@ const AssessmentResults: React.FC<AssessmentResultsProps> = ({ wpm, comprehensio
         <button 
             onClick={handleAction}
             disabled={isUpdating}
-            className="w-full max-w-sm h-14 bg-primary text-black font-bold text-lg rounded-xl shadow-[0_0_20px_rgba(25,230,94,0.3)] hover:scale-105 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full max-w-sm h-14 bg-primary text-background-dark font-bold text-lg rounded-xl shadow-glow hover:scale-105 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
         >
             {isUpdating ? <span className="size-5 border-2 border-black border-t-transparent rounded-full animate-spin"></span> : <span>Continuar</span>}
         </button>

@@ -299,7 +299,7 @@ const LociTraining: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             <button 
                                 key={s} 
                                 onClick={() => setImageSize(s)}
-                                className={`px-2 py-1 text-[10px] font-bold rounded transition-colors ${imageSize === s ? 'bg-primary text-black' : 'text-gray-400'}`}
+                                className={`px-2 py-1 text-[10px] font-bold rounded transition-colors ${imageSize === s ? 'bg-primary text-background-dark' : 'text-gray-400'}`}
                             >
                                 {s}
                             </button>
@@ -367,7 +367,7 @@ const LociTraining: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             <h2 className="text-3xl font-bold mb-6 text-center px-4">"{memoryItems[currentStationIdx]?.concept}"</h2>
                             
                             <div className="bg-white/5 border border-primary/20 p-5 rounded-2xl max-w-sm w-full relative">
-                                <span className="material-symbols-outlined absolute -top-3 -left-3 size-8 bg-primary text-black rounded-full flex items-center justify-center text-sm font-bold">psychology</span>
+                                <span className="material-symbols-outlined absolute -top-3 -left-3 size-8 bg-primary text-background-dark rounded-full flex items-center justify-center text-sm font-bold">psychology</span>
                                 <p className="text-base leading-relaxed text-gray-200 italic">
                                     {memoryItems[currentStationIdx]?.story}
                                 </p>

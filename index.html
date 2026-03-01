@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="description" content="Lector - Inteligencia Artificial aplicada a la lectura rápida y supermemoria." />
-    <meta name="theme-color" content="#112116" />
+    <meta name="theme-color" content="#0c1410" />
     <title>Lector - Coach de Aprendizaje</title>
     <script>
       window.global = window;
@@ -27,30 +27,80 @@
         theme: {
           extend: {
             colors: {
-              // OPTIMIZACIÓN: Los colores primarios ahora son dinámicos
               primary: "var(--primary)",
               "primary-dark": "var(--primary-dark)",
-              "background-dark": "#112116",
-              "surface-dark": "#1a2c20",
+              "primary-muted": "var(--primary-muted)",
+              "background-dark": "var(--bg-dark)",
+              "background-light": "var(--bg-light)",
+              "surface-dark": "var(--surface-dark)",
+              "card-border": "var(--card-border)",
             },
             fontFamily: { display: ["Lexend", "sans-serif"] },
+            borderRadius: {
+              '4xl': '2rem',
+            },
+            boxShadow: {
+              'glow': '0 0 20px var(--primary-glow)',
+              'glow-lg': '0 0 40px var(--primary-glow)',
+              'card': '0 1px 3px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.15)',
+              'card-hover': '0 2px 6px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.2)',
+            },
           },
         },
       };
     </script>
     <style>
-      /* Definición de variables raíz con fallback de seguridad */
       :root { 
-        --primary: #19e65e; 
-        --primary-dark: #14b84b;
+        /* Paleta verde sofisticada - tonos desaturados y profundos */
+        --primary: #34d399;
+        --primary-dark: #10b981;
+        --primary-muted: rgba(52, 211, 153, 0.08);
+        --primary-glow: rgba(52, 211, 153, 0.15);
+
+        /* Fondos oscuros - más neutros, menos verde puro */
+        --bg-dark: #0c1410;
+        --bg-light: #f8faf9;
+        --surface-dark: #141e19;
+        --card-border: rgba(255, 255, 255, 0.06);
       }
-      body { background-color: #112116; min-height: 100vh; }
+
+      body { 
+        background-color: var(--bg-dark); 
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
       .no-scrollbar::-webkit-scrollbar { display: none; }
-      
-      /* Asegurar que las transiciones de color sean fluidas */
-      * {
-        transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+      /* Transiciones fluidas globales */
+      *, *::before, *::after {
+        transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
       }
+
+      /* Eliminar transicion en animaciones rapidas */
+      .animate-spin, .animate-pulse, .animate-ping, .animate-bounce {
+        transition: none !important;
+      }
+
+      /* Selection refinada */
+      ::selection {
+        background: var(--primary);
+        color: var(--bg-dark);
+      }
+
+      /* Focus ring global consistente */
+      *:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+
+      /* Scrollbar sutil para navegadores que la muestran */
+      ::-webkit-scrollbar { width: 4px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
     </style>
     <script type="importmap">
 {

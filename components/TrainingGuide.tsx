@@ -87,12 +87,12 @@ const TrainingGuide: React.FC<TrainingGuideProps> = ({ guideKey, onClose }) => {
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl p-4 animate-in fade-in duration-300">
-            <div className="bg-[#1A2C20] w-full max-w-sm rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
+            <div className="bg-surface-dark w-full max-w-sm rounded-[3rem] border border-card-border shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
                 
                 {/* Indicadores de Progreso */}
                 <div className="flex gap-1.5 px-8 pt-8">
                     {steps.map((_, i) => (
-                        <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-500 ${i <= currentStep ? 'bg-primary shadow-[0_0_8px_rgba(25,230,94,0.5)]' : 'bg-white/10'}`}></div>
+                        <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-500 ${i <= currentStep ? 'bg-primary shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'bg-white/10'}`}></div>
                     ))}
                 </div>
 
@@ -142,7 +142,7 @@ const TrainingGuide: React.FC<TrainingGuideProps> = ({ guideKey, onClose }) => {
                 </div>
 
                 {/* Controles de Navegación */}
-                <div className="p-8 pt-4 flex gap-3 bg-gradient-to-t from-[#1A2C20] to-transparent">
+                <div className="p-8 pt-4 flex gap-3 bg-gradient-to-t from-surface-dark to-transparent">
                     {currentStep > 0 ? (
                         <button 
                             onClick={prevStep}
@@ -155,7 +155,7 @@ const TrainingGuide: React.FC<TrainingGuideProps> = ({ guideKey, onClose }) => {
                     )}
                     <button 
                         onClick={nextStep}
-                        className="flex-1 h-14 bg-primary text-[#112116] font-black text-lg rounded-2xl shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
+                        className="flex-1 h-14 bg-primary text-background-dark font-black text-lg rounded-2xl shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
                         {currentStep === steps.length - 1 ? 'Empezar' : 'Entendido'}
                         <span className="material-symbols-outlined">

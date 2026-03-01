@@ -210,7 +210,7 @@ const MemoryTraining: React.FC<{ onNavigate: (route: AppRoute) => void }> = ({ o
 
                 <div 
                     className={`p-6 rounded-[2rem] relative overflow-hidden group cursor-pointer transition-all border
-                        ${stats.due > 0 ? 'bg-primary text-black border-primary shadow-xl shadow-primary/20' : 'bg-white dark:bg-surface-dark border-black/5 dark:border-white/5'}
+                        ${stats.due > 0 ? 'bg-primary text-background-dark border-primary shadow-xl shadow-primary/20' : 'bg-white dark:bg-surface-dark border-black/5 dark:border-white/5'}
                     `}
                     onClick={() => stats.due > 0 && startReviewSession()}
                 >

@@ -47,8 +47,8 @@ const Welcome: React.FC<WelcomeProps> = ({ onNavigate }) => {
         {/* Social Proof */}
         <div className="flex items-center gap-3 mb-4 bg-white/5 dark:bg-white/5 rounded-full px-4 py-2 backdrop-blur-sm border border-black/5 dark:border-white/10">
           <div className="flex -space-x-2 overflow-hidden">
-            <img alt="User 1" className="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-[#112116] object-cover" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" />
-            <img alt="User 2" className="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-[#112116] object-cover" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka" />
+            <img alt="User 1" className="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-background-dark object-cover" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" />
+            <img alt="User 2" className="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-background-dark object-cover" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka" />
           </div>
           <span className="text-xs font-medium text-slate-600 dark:text-gray-400">+10k estudiantes</span>
         </div>
@@ -59,7 +59,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onNavigate }) => {
         {/* BOTÓN PRINCIPAL: INICIAR SESIÓN (GREEN BUTTON) */}
         <button
             onClick={() => onNavigate(AppRoute.LOGIN)}
-            className="group relative flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl h-16 bg-primary text-[#112217] text-lg font-extrabold leading-normal tracking-[0.015em] transition-transform active:scale-[0.98] shadow-[0_0_25px_rgba(25,230,94,0.4)] hover:shadow-[0_0_35px_rgba(25,230,94,0.6)]"
+            className="group relative flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl h-16 bg-primary text-background-dark text-lg font-extrabold leading-normal tracking-[0.015em] transition-transform active:scale-[0.98] shadow-glow hover:shadow-glow-lg"
         >
           <span>Iniciar Sesión</span>
           <span className="material-symbols-outlined ml-2 text-[24px] transition-transform group-hover:translate-x-1">login</span>
@@ -76,7 +76,7 @@ const Welcome: React.FC<WelcomeProps> = ({ onNavigate }) => {
         <div className="text-center">
           <button 
             onClick={() => onNavigate(AppRoute.ASSESSMENT_INTRO)} 
-            className="text-slate-500 dark:text-[#93c8a5] text-sm font-medium leading-normal hover:text-primary transition-colors flex flex-col items-center gap-1 mx-auto"
+            className="text-slate-500 dark:text-primary/60 text-sm font-medium leading-normal hover:text-primary transition-colors flex flex-col items-center gap-1 mx-auto"
           >
             <p>¿Prefieres empezar de cero?</p>
             <span className="font-bold underline decoration-1 underline-offset-4 text-primary">Toma el test para iniciar</span>

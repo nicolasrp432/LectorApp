@@ -5,14 +5,14 @@ export const AVATARS = [
     "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
     "https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka",
     "https://api.dicebear.com/7.x/avataaars/svg?seed=Zack",
-    "https://api.dicebear.com/7.x/bottts/svg?seed=LectorBot1&backgroundColor=19e65e",
+    "https://api.dicebear.com/7.x/bottts/svg?seed=LectorBot1&backgroundColor=34d399",
     "https://api.dicebear.com/7.x/bottts/svg?seed=MegaBrain&backgroundColor=ffdfbf",
     "https://api.dicebear.com/7.x/notionists/svg?seed=Owl&backgroundColor=e1fdfb",
 ];
 
 export const DEFAULT_THEME_CONFIG = {
     id: 'default',
-    primaryColor: '#19e65e',
+    primaryColor: '#34d399',
     animationKey: 'default',
     difficulty: 'Básico' as const
 };

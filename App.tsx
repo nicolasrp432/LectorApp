@@ -75,7 +75,7 @@ const MainLayout: React.FC = () => {
 
   if (loading) {
       return (
-        <div className="flex h-screen w-full items-center justify-center bg-[#112116]">
+        <div className="flex h-screen w-full items-center justify-center bg-background-dark">
              <div className="flex flex-col items-center gap-4">
                  <div className="size-16 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
                  <p className="text-primary text-xs font-bold uppercase tracking-widest">Sincronizando...</p>
@@ -153,7 +153,7 @@ const MainLayout: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="relative flex min-h-screen w-full flex-col max-w-md mx-auto border-x border-[#244730] shadow-2xl overflow-hidden bg-background-dark">
+      <div className="relative flex min-h-screen w-full flex-col max-w-md mx-auto border-x border-card-border shadow-2xl overflow-hidden bg-background-dark">
           {renderContent()}
           {newAchievement && <AchievementModal achievement={newAchievement} onClose={() => setNewAchievement(null)} />}
           {showBottomNav && <BottomNav currentRoute={currentRoute} onNavigate={navigate} />}

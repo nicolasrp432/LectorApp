@@ -44,7 +44,7 @@ const AssessmentReading: React.FC<AssessmentReadingProps> = ({ onFinishReading, 
                 <br/><br/>
                 Pulsa <b>"Terminé de Leer"</b> tan pronto como acabes la última palabra.
              </p>
-             <button onClick={handleStart} className="px-8 py-4 bg-primary text-black font-bold rounded-xl shadow-lg hover:scale-105 transition-transform">
+             <button onClick={handleStart} className="px-8 py-4 bg-primary text-background-dark font-bold rounded-xl shadow-lg hover:scale-105 transition-transform">
                 Comenzar Lectura
              </button>
              <button onClick={onBack} className="mt-4 text-gray-500 text-sm hover:underline">Volver</button>
@@ -66,7 +66,7 @@ const AssessmentReading: React.FC<AssessmentReadingProps> = ({ onFinishReading, 
       <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-background-light via-background-light to-transparent dark:from-background-dark dark:via-background-dark pt-12">
         <button 
             onClick={handleFinish}
-            className="w-full h-14 bg-primary text-black font-bold text-lg rounded-xl shadow-xl hover:bg-primary-dark transition-colors active:scale-95 flex items-center justify-center gap-2"
+            className="w-full h-14 bg-primary text-background-dark font-bold text-lg rounded-xl shadow-xl hover:bg-primary-dark transition-colors active:scale-95 flex items-center justify-center gap-2"
         >
             <span className="material-symbols-outlined">stop_circle</span>
             Terminé de Leer

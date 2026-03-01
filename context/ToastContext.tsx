@@ -37,7 +37,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             className={`
               pointer-events-auto flex items-center gap-3 px-6 py-3 rounded-full shadow-2xl 
               animate-in slide-in-from-top-2 fade-in zoom-in-95 duration-300
-              ${toast.type === 'success' ? 'bg-[#19e65e] text-[#112217]' : ''}
+              ${toast.type === 'success' ? 'bg-primary text-background-dark' : ''}
               ${toast.type === 'error' ? 'bg-red-500 text-white' : ''}
               ${toast.type === 'info' ? 'bg-slate-800 text-white' : ''}
               ${toast.type === 'warning' ? 'bg-orange-500 text-white' : ''}
