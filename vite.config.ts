@@ -9,7 +9,8 @@ export default defineConfig({
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
   },
   server: {
-    port: 3000
+    port: 3000,
+    allowedHosts: true,
   },
   build: {
     outDir: 'dist',
