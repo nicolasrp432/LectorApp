@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { AppRoute, Achievement, LearningModule } from './types.ts';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
 import { ToastProvider, useToast } from './context/ToastContext.tsx';
+import { supabase } from './utils/supabase.ts';
 import { PRACTICE_LIBRARY, LEARNING_MODULES } from './constants.ts';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 
@@ -40,6 +41,24 @@ const MainLayout: React.FC = () => {
   const [assessmentData, setAssessmentData] = useState({wpm: 0, comprehension: 0});
   const [newAchievement, setNewAchievement] = useState<Achievement | null>(null);
 
+  // Detect password recovery tokens in URL hash (Supabase sends #access_token=...&type=recovery)
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && (hash.includes('type=recovery') || hash.includes('reset-password'))) {
+      setCurrentRoute(AppRoute.RESET_PASSWORD);
+    }
+  }, []);
+
+  // Listen for PASSWORD_RECOVERY auth event to route to reset password page
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setCurrentRoute(AppRoute.RESET_PASSWORD);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
   useEffect(() => {
     if (user?.preferences?.themeColor) {
         document.documentElement.style.setProperty('--primary', user.preferences.themeColor);
@@ -68,6 +87,8 @@ const MainLayout: React.FC = () => {
   }, [user, loading, currentRoute]);
 
   useEffect(() => {
+      // Don't redirect away from reset-password even if user has a session (recovery flow)
+      if (currentRoute === AppRoute.RESET_PASSWORD) return;
       if (!loading && user && (currentRoute === AppRoute.WELCOME || currentRoute === AppRoute.LOGIN || currentRoute === AppRoute.REGISTER)) {
           navigate(AppRoute.DASHBOARD);
       }
@@ -93,8 +114,8 @@ const MainLayout: React.FC = () => {
   const renderContent = () => {
     switch (currentRoute) {
       case AppRoute.WELCOME: return <Welcome onNavigate={navigate} />;
-      case AppRoute.LOGIN: return <Login onLogin={() => {}} onNavigate={navigate} />;
-      case AppRoute.REGISTER: return <Register onRegister={() => {}} onNavigate={navigate} />;
+      case AppRoute.LOGIN: return <Login onNavigate={navigate} />;
+      case AppRoute.REGISTER: return <Register onNavigate={navigate} />;
       case AppRoute.RESET_PASSWORD: return <ResetPassword onNavigate={navigate} />;
       
       case AppRoute.ASSESSMENT_INTRO: return <AssessmentIntro onNavigate={navigate} onBack={() => user ? navigate(AppRoute.SETTINGS) : navigate(AppRoute.WELCOME)} />;

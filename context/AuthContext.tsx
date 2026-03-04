@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { User, ReadingLog, Book, Flashcard, Notification as AppNotification, Achievement, Reward, UserStats, LearningProgress } from '../types.ts';
 import { supabase } from '../utils/supabase.ts';
@@ -13,6 +12,7 @@ interface AuthContextType {
   flashcards: Flashcard[];
   readingLogs: ReadingLog[];
   notifications: AppNotification[];
+  authError: string | null;
   refreshUser: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
   logReading: (log: Omit<ReadingLog, 'id' | 'userId' | 'timestamp'>) => Promise<void>;
@@ -27,10 +27,13 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const AUTH_TIMEOUT_MS = 10000;
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
   const [readingLogs, setReadingLogs] = useState<ReadingLog[]>([]);
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
@@ -39,8 +42,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isSyncing = useRef(false);
   const updateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingUpdates = useRef<Partial<User>>({});
+  const hasInitialized = useRef(false);
 
-  // SISTEMA DINÁMICO DE TEMAS
+  // Dynamic theme system
   useEffect(() => {
     try {
         const themeColor = user?.preferences?.themeColor ?? DEFAULT_THEME_CONFIG.primaryColor;
@@ -51,20 +55,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         document.documentElement.style.setProperty('--primary', DEFAULT_THEME_CONFIG.primaryColor);
         document.documentElement.style.setProperty('--primary-dark', '#10b981');
     }
-  }, [user?.preferences?.themeColor, user]);
+  }, [user?.preferences?.themeColor]);
 
   const syncToBackend = useCallback(async (userId: string, updates: Partial<User>) => {
     if (isGuest || !userId) return;
     try {
         await dbService.updateFullProfile(userId, updates);
     } catch (e) {
-        if (process.env.NODE_ENV !== 'production') console.error("[Sync] Error persistiendo cambios:", e);
+        console.error("[Sync] Error persisting changes:", e);
     }
   }, [isGuest]);
 
   const loadUserData = useCallback(async (userId: string, email: string, metadata?: any) => {
     if (isSyncing.current || !userId) return;
     isSyncing.current = true;
+    setAuthError(null);
     
     try {
       const profile = await dbService.getUserProfile(userId);
@@ -82,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           preferences: {
             dailyGoalMinutes: 15,
             targetWPM: 300,
-            difficultyLevel: 'Básico',
+            difficultyLevel: 'Basico' as any,
             notificationsEnabled: true,
             soundEnabled: true,
             themeColor: DEFAULT_THEME_CONFIG.primaryColor,
@@ -115,26 +120,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (results[0].status === 'fulfilled') setReadingLogs(results[0].value || []);
       if (results[1].status === 'fulfilled') setBooks((results[1].value && results[1].value.length > 0) ? results[1].value : SUGGESTED_BOOKS);
       
-    } catch (err) {
-      if (process.env.NODE_ENV !== 'production') console.error("[Auth] Error cargando usuario:", err);
+    } catch (err: any) {
+      console.error("[Auth] Error loading user:", err);
+      setAuthError("Error al cargar tu perfil. Intenta de nuevo.");
     } finally {
       isSyncing.current = false;
       setLoading(false);
     }
   }, []);
 
+  // Main auth listener - handles INITIAL_SESSION, SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED
   useEffect(() => {
+    // Safety timeout: if Supabase never responds, stop loading
+    const timeoutId = setTimeout(() => {
+      if (loading && !hasInitialized.current) {
+        hasInitialized.current = true;
+        setLoading(false);
+        console.warn("[Auth] Timeout: Supabase did not respond in time. Check env vars.");
+      }
+    }, AUTH_TIMEOUT_MS);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      hasInitialized.current = true;
+      clearTimeout(timeoutId);
+
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        setUser(null);
+        setBooks([]);
+        setReadingLogs([]);
+        setFlashcards([]);
+        setIsGuest(false);
+        setLoading(false);
+        return;
+      }
+
       if (session?.user) {
         setIsGuest(false);
-        loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
-      } else if (!isGuest) {
-        setUser(null);
+        setAuthError(null);
+        await loadUserData(session.user.id, session.user.email!, session.user.user_metadata);
+      } else if (event === 'INITIAL_SESSION') {
+        // No session found on initial load - user is not logged in
         setLoading(false);
       }
     });
-    return () => subscription.unsubscribe();
-  }, [loadUserData, isGuest]);
+
+    return () => {
+      clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
+  }, [loadUserData]);
 
   const updateUser = async (updates: Partial<User>) => {
     if (!user) return;
@@ -204,15 +238,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const removeBook = async (bookId: string) => {
     if (!bookId) return;
-    // UI REACTIVA: Eliminar inmediatamente del estado local
     setBooks(prev => prev.filter(b => b.id !== bookId));
-    
-    // PERSISTENCIA: Solo si no es invitado
     if (!isGuest && user) {
         try {
             await dbService.deleteUserBook(bookId);
         } catch (e) {
-            if (process.env.NODE_ENV !== 'production') console.error("[DB] Error al borrar libro persistente:", e);
+            console.error("[DB] Error deleting book:", e);
         }
     }
   };
@@ -237,6 +268,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginAsGuest = () => {
     setIsGuest(true);
+    setAuthError(null);
     setUser({
         id: 'guest',
         name: 'Invitado',
@@ -246,7 +278,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         joinedDate: Date.now(),
         baselineWPM: 200,
         level: "Visitante",
-        preferences: { dailyGoalMinutes: 15, targetWPM: 250, difficultyLevel: 'Básico', notificationsEnabled: false, soundEnabled: true, themeColor: DEFAULT_THEME_CONFIG.primaryColor, unlockedRewards: [] },
+        preferences: { dailyGoalMinutes: 15, targetWPM: 250, difficultyLevel: 'Basico' as any, notificationsEnabled: false, soundEnabled: true, themeColor: DEFAULT_THEME_CONFIG.primaryColor, unlockedRewards: [] },
         achievements: [],
         learningProgress: []
     });
@@ -255,24 +287,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     setLoading(true);
+    // Flush pending updates before logout
     if (updateTimerRef.current) {
         clearTimeout(updateTimerRef.current);
-        if (user && Object.keys(pendingUpdates.current).length > 0) {
+        if (user && user.id !== 'guest' && Object.keys(pendingUpdates.current).length > 0) {
             await syncToBackend(user.id, pendingUpdates.current);
         }
+        pendingUpdates.current = {};
     }
-    try { if (user && user.id !== 'guest') await supabase.auth.signOut(); } catch (err) {}
-    finally { 
-        setIsGuest(false); setUser(null); setBooks([]); setReadingLogs([]); 
-        setFlashcards([]); setLoading(false); 
+    try { 
+      if (user && user.id !== 'guest') await supabase.auth.signOut(); 
+    } catch (err) {
+      console.error("[Auth] Logout error:", err);
+    } finally { 
+        setIsGuest(false); 
+        setUser(null); 
+        setBooks([]); 
+        setReadingLogs([]); 
+        setFlashcards([]); 
+        setAuthError(null);
+        setLoading(false); 
     }
   };
 
+  const refreshUser = useCallback(async () => {
+    if (!user || user.id === 'guest') return;
+    await loadUserData(user.id, user.email);
+  }, [user, loadUserData]);
+
   return (
     <AuthContext.Provider value={{
-      user, loading, isGuest, books, flashcards, readingLogs, notifications,
-      refreshUser: () => loadUserData(user?.id || '', user?.email || ''), 
-      updateUser, logReading, addBook, removeBook, 
+      user, loading, isGuest, books, flashcards, readingLogs, notifications, authError,
+      refreshUser, updateUser, logReading, addBook, removeBook, 
       updateLearningProgress, equipReward, loginAsGuest, logout, setNotifications
     }}>
       {children}
