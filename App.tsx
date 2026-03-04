@@ -32,6 +32,7 @@ import LearningModuleViewer from './pages/LearningModuleViewer.tsx';
 import BottomNav from './components/BottomNav.tsx';
 import Header from './components/Header.tsx';
 import AchievementModal from './components/AchievementModal.tsx';
+import MascotCompanion from './components/Mascot/MascotCompanion.tsx';
 
 const MainLayout: React.FC = () => {
   const { user, loading, notifications, setNotifications, books, logReading, updateUser, logout } = useAuth();
@@ -176,6 +177,7 @@ const MainLayout: React.FC = () => {
     <ErrorBoundary>
       <div className="relative flex min-h-screen w-full flex-col max-w-md mx-auto border-x border-card-border shadow-2xl overflow-hidden bg-background-dark">
           {renderContent()}
+          <MascotCompanion currentRoute={currentRoute} user={user} />
           {newAchievement && <AchievementModal achievement={newAchievement} onClose={() => setNewAchievement(null)} />}
           {showBottomNav && <BottomNav currentRoute={currentRoute} onNavigate={navigate} />}
       </div>

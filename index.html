@@ -101,6 +101,162 @@
       ::-webkit-scrollbar-track { background: transparent; }
       ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
       ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+      /* ========================================
+         LECTO MASCOT ANIMATIONS
+         ======================================== */
+
+      /* Idle: gentle float + blink */
+      .lecto-idle .lecto-body {
+        animation: lectoFloat 3s ease-in-out infinite;
+      }
+      .lecto-idle .lecto-pupil {
+        animation: lectoBlink 4s ease-in-out infinite;
+      }
+      .lecto-idle .lecto-page-right {
+        animation: lectoPageRuffle 4s ease-in-out infinite;
+      }
+
+      /* Happy: bounce + page flutter */
+      .lecto-happy .lecto-body {
+        animation: lectoBounce 1.5s ease-in-out infinite;
+      }
+      .lecto-happy .lecto-page-left {
+        animation: lectoPageFlutter 0.6s ease-in-out infinite alternate;
+      }
+      .lecto-happy .lecto-page-right {
+        animation: lectoPageFlutter 0.6s ease-in-out 0.1s infinite alternate;
+      }
+      .lecto-happy .lecto-happy-extras {
+        animation: lectoHeartFloat 2s ease-in-out infinite;
+      }
+
+      /* Thinking: tilt + question pulse */
+      .lecto-thinking .lecto-body {
+        animation: lectoThink 3s ease-in-out infinite;
+      }
+      .lecto-thinking .lecto-question {
+        animation: lectoQuestionPulse 2s ease-in-out infinite;
+      }
+
+      /* Celebrating: big bounce + sparkles */
+      .lecto-celebrating .lecto-body {
+        animation: lectoCelebrate 1s ease-in-out infinite;
+      }
+      .lecto-celebrating .lecto-sparkle-1 { animation: lectoSparkle 1.2s ease-out infinite 0s; }
+      .lecto-celebrating .lecto-sparkle-2 { animation: lectoSparkle 1.2s ease-out infinite 0.2s; }
+      .lecto-celebrating .lecto-sparkle-3 { animation: lectoSparkle 1.2s ease-out infinite 0.4s; }
+      .lecto-celebrating .lecto-sparkle-4 { animation: lectoSparkle 1.2s ease-out infinite 0.6s; }
+      .lecto-celebrating .lecto-sparkle-5 { animation: lectoSparkle 1.2s ease-out infinite 0.8s; }
+      .lecto-celebrating .lecto-sparkle-6 { animation: lectoSparkle 1.2s ease-out infinite 1.0s; }
+      .lecto-celebrating .lecto-star-1,
+      .lecto-celebrating .lecto-star-2 {
+        animation: lectoStarSpin 1s linear infinite;
+      }
+
+      /* Sad: slight droop */
+      .lecto-sad .lecto-body {
+        animation: lectoSad 3s ease-in-out infinite;
+      }
+
+      /* Sleeping: gentle sway + zzz */
+      .lecto-sleeping .lecto-body {
+        animation: lectoSleep 4s ease-in-out infinite;
+      }
+      .lecto-sleeping .lecto-zzz {
+        animation: lectoZzz 2s ease-in-out infinite;
+      }
+      .lecto-sleeping .lecto-zzz-2 {
+        animation: lectoZzz 2s ease-in-out infinite 0.5s;
+      }
+
+      /* Speech bubble entrance */
+      .lecto-bubble-enter {
+        animation: lectoBubbleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      }
+
+      /* --- Keyframes --- */
+
+      @keyframes lectoFloat {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-4px); }
+      }
+
+      @keyframes lectoBlink {
+        0%, 42%, 46%, 100% { r: 2.5; }
+        44% { r: 0.3; }
+      }
+
+      @keyframes lectoPageRuffle {
+        0%, 100% { transform: skewY(0deg); }
+        50% { transform: skewY(-1deg); }
+      }
+
+      @keyframes lectoBounce {
+        0%, 100% { transform: translateY(0) scale(1); }
+        40% { transform: translateY(-6px) scale(1.03); }
+        60% { transform: translateY(-2px) scale(0.98); }
+      }
+
+      @keyframes lectoPageFlutter {
+        0% { transform: skewY(0deg); }
+        100% { transform: skewY(-3deg); }
+      }
+
+      @keyframes lectoHeartFloat {
+        0%, 100% { transform: translateY(0); opacity: 0.7; }
+        50% { transform: translateY(-6px); opacity: 1; }
+      }
+
+      @keyframes lectoThink {
+        0%, 100% { transform: rotate(0deg); }
+        25% { transform: rotate(-3deg); }
+        75% { transform: rotate(3deg); }
+      }
+
+      @keyframes lectoQuestionPulse {
+        0%, 100% { opacity: 0.3; transform: translateY(0); }
+        50% { opacity: 1; transform: translateY(-4px); }
+      }
+
+      @keyframes lectoCelebrate {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        25% { transform: translateY(-8px) rotate(-4deg); }
+        50% { transform: translateY(-3px) rotate(0deg); }
+        75% { transform: translateY(-8px) rotate(4deg); }
+      }
+
+      @keyframes lectoSparkle {
+        0% { opacity: 1; r: 2; }
+        50% { opacity: 0.8; r: 3.5; }
+        100% { opacity: 0; r: 0.5; }
+      }
+
+      @keyframes lectoStarSpin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      @keyframes lectoSad {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        50% { transform: translateY(2px) rotate(-2deg); }
+      }
+
+      @keyframes lectoSleep {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        50% { transform: translateY(1px) rotate(-1.5deg); }
+      }
+
+      @keyframes lectoZzz {
+        0% { opacity: 0; transform: translate(0, 0) scale(0.5); }
+        50% { opacity: 0.8; transform: translate(-4px, -8px) scale(1); }
+        100% { opacity: 0; transform: translate(-8px, -16px) scale(0.7); }
+      }
+
+      @keyframes lectoBubbleIn {
+        0% { opacity: 0; transform: scale(0.8) translateY(8px); }
+        100% { opacity: 1; transform: scale(1) translateY(0); }
+      }
     </style>
     <script type="importmap">
 {
